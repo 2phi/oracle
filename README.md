@@ -39,7 +39,7 @@ Cite the repository as:
 tbd.
 ```
 
-Written in [🐍 Python](https://www.python.org) and built with [💻 Visual Studio Code](https://code.visualstudio.com), [🐙 GitKraken](https://www.gitkraken.com), and [⭕️ Marimo](https://marimo.io).
+Written in 🐍 [Python](https://www.python.org) and built with 💻 [Visual Studio Code](https://code.visualstudio.com), 🐙 [GitKraken](https://www.gitkraken.com), and ⭕️ [Marimo](https://marimo.io).
 
 
 
