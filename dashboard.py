@@ -4,7 +4,7 @@ __generated_with = "0.6.26"
 app = marimo.App(
     width="medium",
     app_title="ORACLE",
-    layout_file="dashboard.grid.json",
+    layout_file="layouts/dashboard.grid.json",
 )
 
 
