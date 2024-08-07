@@ -97,7 +97,7 @@ See the [open issues](https://github.com/2phi/weac/issues) for a list of propose
 ## Release history
 
 ### v0.1
-- 
+- Define layered slabs
 - Basic user interface components
 
 
