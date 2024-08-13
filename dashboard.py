@@ -134,6 +134,16 @@ def __(mo):
         """
         ---
         ## 1. USER INPUT
+
+        - user input: inclination
+        - user input: cutting direction
+        - user input: slab faces (normal, vertical)
+        - user input: column length
+        - user input: cut length
+        - change style sheet?
+        - Run WEAC to compute ERR
+        - Dataset: NCOMMS data
+        - Determine distribution function for ERRs and use it as a metric for the probability of propagation
         """
     )
     return
@@ -281,7 +291,6 @@ def __(
 @app.cell
 def __(layers):
     print(layers)
-
     return
 
 
