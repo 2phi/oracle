@@ -152,7 +152,7 @@ def __(mo):
             "**Dry snow density from garin form and hand hardness**": mo.md(
                 rf"""
             Parameters for density parametrisations based on snow form and hand hardness according to Geldsetzer and Jamiesnon         (See paper below).
-            
+
             *Geldsetzer, Torsten & Jamieson, Bruce. (2000). ESTIMATING DRY SNOW DENSITY FROM GRAIN FORM AND HAND HARDNESS*
             """
             )
@@ -213,7 +213,6 @@ def __(b_resetlayers, run):
         layers = []
         # 2D list of top-to-bottom layer densities and thicknesses. Columns are density (kg/m^3) and thickness (mm).
         grain_list = []
-
     return grain_list, layers
 
 
@@ -251,7 +250,7 @@ def __(
     num_hardness,
     num_layer_thickness,
 ):
-    mo.vstack(['Add layers from bottom to top:', mo.hstack([num_layer_thickness, drop_grainform, num_hardness, b_addlayer, b_resetlayers], justify="center")], align='start', justify='space-between') 
+    mo.vstack(['Add layers from bottom to top:', mo.hstack([num_layer_thickness, drop_grainform, num_hardness, b_addlayer, b_resetlayers], justify="center")], align='start', justify='space-between')
     return
 
 
@@ -273,7 +272,7 @@ def __(
             _density = _a + _b * (num_hardness.value ** 3.15)
         else:
             _density = _a + _b * num_hardness.value
-        
+
         layers.insert(0, [_density,num_layer_thickness.value])
         grain_list.insert(0, drop_grainform.value)
     return grainform_row,
@@ -351,7 +350,7 @@ def __(np, plt):
                 densities = a + b * (hand_hardness ** 3.15)
             else:
                 densities = a + b * hand_hardness
-            
+
             ax.plot(hand_hardness, densities, label=row['type_abbr'])
 
         # Set plot limits and labels
@@ -384,7 +383,7 @@ def __(np, plt):
         """
         # Initialize figure and axis
         fig, ax = plt.subplots(figsize=(10, 5))
-        
+
         # Define substratum thickness and position
         substratum_thickness = 100
         substratum_bottom = -substratum_thickness
@@ -392,7 +391,7 @@ def __(np, plt):
 
         # Calculate total height of all layers
         total_height = weaklayer_thickness + sum(thickness for _, thickness in layers)
-        
+
         # Plot the substratum
         ax.fill_betweenx([substratum_bottom, substratum_top], 0, 1, color='lightgrey', alpha=0.6)
         ax.text(0.5, (substratum_bottom + substratum_top) / 2 - 15, 'substratum', ha='center', va='center', color='black', fontsize=10)
@@ -409,21 +408,21 @@ def __(np, plt):
         for (density, thickness), grain in zip(reversed(layers), reversed(grain_list)):
             layer_bottom = current_height
             layer_top = current_height + thickness
-            
+
             # Determine color and hatch pattern based on grain type
             color = plt.cm.viridis(1 - density / 450)
             hatch = '//' if grain == 'mfc' else None
-            
+
             # Fill the layer with color and optional hatch pattern
             ax.fill_betweenx([layer_bottom, layer_top], 0, 1, color=color, alpha=0.6, hatch=hatch)
             ax.axhline(layer_top, color='grey', linestyle='-', linewidth=1)
-            
+
             # Annotate density in the middle of the layer
             ax.text(0.5, (layer_bottom + layer_top) / 2, f'{int(density)} kg/m³', ha='center', va='center', color='black', fontsize=10)
-            
+
             # Annotate grain type on the right side in the middle of the layer
             ax.text(1.1, (layer_bottom + layer_top) / 2, grain, ha='left', va='center', color='black', fontsize=10)
-            
+
             # Update the current height
             current_height = layer_top
 
