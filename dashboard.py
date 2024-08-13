@@ -144,6 +144,11 @@ def __(mo):
         - Run WEAC to compute ERR
         - Dataset: NCOMMS data
         - Determine distribution function for ERRs and use it as a metric for the probability of propagation
+
+        ### FOR THE PAPER
+        - Determine distribution function for ERRs and use it as a metric for the probability of propagation
+        - use example layering (e.g. from NCOMMS paper)
+        - plot: distribution function of ERRs
         """
     )
     return
