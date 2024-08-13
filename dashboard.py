@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.6.26"
+__generated_with = "0.7.17"
 app = marimo.App(
     width="medium",
     app_title="ORACLE",
@@ -141,7 +141,7 @@ def __(mo):
 
 @app.cell
 def __(mo):
-    mo.md("### STRATIFICATION")
+    mo.md("""### STRATIFICATION""")
     return
 
 
@@ -203,7 +203,7 @@ def __(grainform_df, mo, plot_density_vs_hand_hardness):
 
 @app.cell
 def __(mo):
-    mo.md("**User Interface**")
+    mo.md("""**User Interface**""")
     return
 
 
@@ -276,6 +276,13 @@ def __(
         layers.insert(0, [_density,num_layer_thickness.value])
         grain_list.insert(0, drop_grainform.value)
     return grainform_row,
+
+
+@app.cell
+def __(layers):
+    print(layers)
+
+    return
 
 
 @app.cell
