@@ -82,21 +82,51 @@ def snow_stratification(weaklayer_thickness, layers, grain_list):
     substratum_top = 0
 
     # Calculate total height of all layers
-    total_height = weaklayer_thickness + sum(
-        thickness for _, thickness in layers
-    )
+    total_height = weaklayer_thickness + sum(thickness for _, thickness in layers)
 
     # Plot the substratum
-    ax.fill_betweenx(
-        [substratum_bottom, substratum_top], 0, 1, color="lightgrey", alpha=0.6
-    )
-    ax.text(
-        0.5,
-        (substratum_bottom + substratum_top) / 2 - 15,
-        "substratum",
-        ha="center",
-        va="center",
-        color="black",
-        fontsize=10,
-    )
+    ax.fill_betweenx([substratum_bottom, substratum_top], 0, 1, color='lightgrey', alpha=0.6)
+    ax.text(0.5, (substratum_bottom + substratum_top) / 2 - 15, 'substratum', ha='center', va='center', color='black', fontsize=10)
+
+    # Plot the weak layer at the bottom
+    current_height = weaklayer_thickness
+    weak_layer_top = weaklayer_thickness
+    ax.axhline(0, color='grey', linestyle='-', linewidth=1)
+    ax.axhline(weak_layer_top, color='grey', linestyle='-', linewidth=1)
+    ax.fill_betweenx([0, weak_layer_top], 0, 1, color='coral', alpha=0.3, hatch = 'x')
+    ax.text(0.5, -15, 'weak layer', ha='center', va='center', color='coral', fontsize=10)
+
+    # Plot each layer from bottom to top
+    for (density, thickness), grain in zip(reversed(layers), reversed(grain_list)):
+        layer_bottom = current_height
+        layer_top = current_height + thickness
+
+        # Determine color and hatch pattern based on grain type
+        color = plt.cm.viridis(1 - density / 450)
+        hatch = '//' if grain == 'mfc' else None
+
+        # Fill the layer with color and optional hatch pattern
+        ax.fill_betweenx([layer_bottom, layer_top], 0, 1, color=color, alpha=0.6, hatch=hatch)
+        ax.axhline(layer_top, color='grey', linestyle='-', linewidth=1)
+
+        # Annotate density in the middle of the layer
+        ax.text(0.5, (layer_bottom + layer_top) / 2, f'{int(density)} kg/m³', ha='center', va='center', color='black', fontsize=10)
+
+        # Annotate grain type on the right side in the middle of the layer
+        ax.text(1.1, (layer_bottom + layer_top) / 2, grain, ha='left', va='center', color='black', fontsize=10)
+
+        # Update the current height
+        current_height = layer_top
+
+    # Set axis limits and labels
+    ax.set_ylim(substratum_bottom, max(total_height, 500))  # Ensure y-axis starts at 500 mm or lower
+    ax.set_xlim(0, 1.2)  # Adjust x-axis limit to make space for grain annotations
+    ax.set_xticks([])  # No numbers on the x-axis
+    ax.set_ylabel('mm')
+    ax.set_title('Snow Stratification', fontsize=10)
+
+    # Add grid for better readability
+    ax.grid(True, which='both', axis='y', linestyle='--', linewidth=0.5)
+
+    # Return the figure and axis objects
     return fig, ax
