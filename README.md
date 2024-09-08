@@ -2,7 +2,7 @@
 <!-- LOGO AND TITLE-->
 <h1 align="center">
   <br>
-  <img src="https://github.com/2phi/oracle/raw/main/img/logo.jpg" alt="ORACLE" width="120">
+  <img src="https://github.com/2phi/oracle/raw/main/img/steampunk-v1.png" alt="ORACLE" width="200">
   <br>
   <br>
   <b>ORACLE</b>
