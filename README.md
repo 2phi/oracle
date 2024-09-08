@@ -92,9 +92,10 @@ See the [open issues](https://github.com/2phi/weac/issues) for a list of propose
 
 
 
-
-
 ## Release history
+
+### v0.2
+- Probability distribution density of weak-layer fracture toughnesses in full-propagation PSTs
 
 ### v0.1
 - Define layered slabs
@@ -117,13 +118,24 @@ See the [open issues](https://github.com/2phi/weac/issues) for a list of propose
 <!-- LICENSE -->
 ## License
 
-Copyright 2phi, 2024.
+<p xmlns:cc="http://creativecommons.org/ns#" xmlns:dct="http://purl.org/dc/terms/">ORACLE is licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener noreferrer" style="display:inline-block;">CC BY-NC-SA 4.0 <img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/cc.svg?ref=chooser-v1" alt=""><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/by.svg?ref=chooser-v1" alt=""><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/nc.svg?ref=chooser-v1" alt=""><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/sa.svg?ref=chooser-v1" alt=""></a></p>
 
-We currently do not offer an open-source license. Please contact us for private licensing options.
+You are free to:
+
+- **Share** — copy and redistribute the material in any medium or format
+- **Adapt** — remix, transform, and build upon the material for any purpose, even commercially.
+
+Under the following terms:
+
+- **Attribution** — You must give [appropriate credit](https://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1#ref-appropriate-credit), provide a link to the license, and [indicate if changes were made](https://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1#ref-indicate-changes). You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use.
+
+- **NonCommercial** — You may not use the material for [commercial purposes](https://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1#ref-commercial-purposes).
+
+- **ShareAlike** — If you remix, transform, or build upon the material, you must distribute your contributions under the [same license](https://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1#ref-same-license) as the original.
 
 
 
 <!-- CONTACT -->
 ## Contact
 
-E-mail: mail@2phi.de · Web: https://2phi.de · Project Link: [https://github.com/2phi/weac](https://github.com/2phi/weac) · Project DOI: [http://dx.doi.org/10.5281/zenodo.5773113](http://dx.doi.org/10.5281/zenodo.5773113)
+E-mail: mail@2phi.de · Web: https://2phi.de · Project Link: [https://github.com/2phi/oracle](https://github.com/2phi/oracle)
