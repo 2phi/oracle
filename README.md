@@ -28,7 +28,6 @@
 
 
 
-
 <!-- ABOUT THE PROJECT -->
 ## About the project
 
@@ -40,8 +39,6 @@ tbd.
 ```
 
 Written in 🐍 [Python](https://www.python.org) and built with 💻 [Visual Studio Code](https://code.visualstudio.com), 🐙 [GitKraken](https://www.gitkraken.com), and ⭕️ [Marimo](https://marimo.io).
-
-
 
 
 
@@ -73,7 +70,6 @@ Needs
 
 
 
-
 <!-- USAGE EXAMPLES -->
 ## Usage
 
@@ -100,7 +96,6 @@ See the [open issues](https://github.com/2phi/weac/issues) for a list of propose
 ### v0.1
 - Define layered slabs
 - Basic user interface components
-
 
 
 
