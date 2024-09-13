@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.7.17"
+__generated_with = "0.8.7"
 app = marimo.App(
     width="medium",
     app_title="ORACLE",
@@ -143,7 +143,8 @@ def __(mo):
 def __(b_resetlayers, run):
     if run or b_resetlayers:
         layers = []
-        # 2D list of top-to-bottom layer densities and thicknesses. Columns are density (kg/m^3) and thickness (mm).
+        # NEW: changed to 3D-list including hand-hardness
+        # 3D list of top-to-bottom layer densities, thicknesses and hand hardness. Columns are density (kg/m^3), thickness (mm) and hand_hardness (N/A).
         grain_list = []
     return grain_list, layers
 
@@ -227,7 +228,9 @@ def __(
         else:
             _density = _a + _b * num_hardness.value
 
-        layers.insert(0, [_density, num_layer_thickness.value])
+        # NEW: adding hand_hardness for easier use in snow stratification 
+        # layers.insert(0, [_density, num_layer_thickness.value])
+        layers.insert(0, [_density, num_layer_thickness.value, num_hardness.value])
         grain_list.insert(0, drop_grainform.value)
     return grainform_row,
 
@@ -235,13 +238,13 @@ def __(
 @app.cell
 def __(b_addlayer, grain_list, layers, plot, run, wl_thickness):
     if run or b_addlayer:
-        fig, ax = plot.snow_stratification(wl_thickness.value, layers, grain_list)
-    return ax, fig
+        fig_2, ax_2 = plot.snow_stratification(wl_thickness.value, layers, grain_list)
+    return ax_2, fig_2
 
 
 @app.cell
-def __(fig):
-    fig
+def __(fig_2):
+    fig_2
     return
 
 
