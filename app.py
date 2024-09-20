@@ -4,7 +4,7 @@ __generated_with = "0.8.15"
 app = marimo.App(
     width="medium",
     app_title="ORACLE",
-    layout_file="layouts/dashboard.grid.json",
+    layout_file="layouts/app.grid.json",
 )
 
 
@@ -145,9 +145,9 @@ def __(mo, run):
     if run:
         # 3D list of layer densities, thicknesses and hand hardness. Columns are density (kg/m^3), thickness (mm) and hand_hardness (N/A).
         layers = []
-        
+
         grain_list = []
-        
+
         # Global button ensuring updating of dynamic table and plot of snow stratification
         b_update_table_plot = mo.ui.run_button(label="Update table and plot")
     return b_update_table_plot, grain_list, layers
@@ -403,127 +403,6 @@ def __(grain_list, layers):
         layers.pop(index)
         grain_list.pop(index)
     return deleting_layers,
-
-
-@app.cell
-def __(mo):
-    mo.md(
-        """
-        ---
-        ## FUNCTIONS
-        """
-    )
-    return
-
-
-@app.cell
-def __(df_vanherwijnen_layers, propability_function, weac):
-    def cm_to_mm(row):
-        return row * 10
-
-    full_propagation = df_vanherwijnen_layers['propagation'] == True
-    slab_fracture = df_vanherwijnen_layers['slab_fracture'] == True
-
-    df_end = df_vanherwijnen_layers[full_propagation]
-    df_arr = df_vanherwijnen_layers[~full_propagation & ~slab_fracture]
-    df_sf = df_vanherwijnen_layers[~full_propagation & slab_fracture]
-
-    this_df = df_arr
-    Ewl = 0.2
-    nu = 0.25
-    Gwl = Ewl(2*(1 + nu))
-
-    ac_ = this_df['rc[cm]'].apply(cm_to_mm).values
-    t_ = this_df['wl_thick[cm]'].apply(cm_to_mm).values
-    dy_ = this_df['dy[cm]'].apply(cm_to_mm).values
-    # t_[t_ > 150] = dy_[t_ > 150]  # replace thick wl with collapse height
-    phi_ = this_df['slope[degree]'].values
-
-    for i, exp in this_df.iterrows():
-        layers_cm = exp['slab_layers[thickness[cm], density[kg/m3]]']
-        layers_mm = [[hi * 10, rho] for hi, rho in layers_cm]  # Convert thickness to mm
-
-        # Initialize PST object
-        pst = weac.Layered(system='-pst', layers=layers_mm)
-
-        # Set weak-layer properties
-        pst.set_foundation_properties(t=20, E=Ewl, update=True)
-
-        # Calculate segmentation
-        segments = pst.calc_segments(phi=phi_[i], L=1000, a=ac_[i])['crack']
-
-        # Assemble model for segments and solve for free constants
-        C = pst.assemble_and_solve(phi=phi_[i], **segments)
-
-        # Calculate ERR and probability
-        Gdif = pst.gdif(C, phi_[i], **segments, unit='J/m^2')
-
-        # Calculate probability
-        prob = propability_function(Gdif[0])
-        this_df.at[i, 'probability'] = prob
-    return (
-        C,
-        Ewl,
-        Gdif,
-        Gwl,
-        ac_,
-        cm_to_mm,
-        df_arr,
-        df_end,
-        df_sf,
-        dy_,
-        exp,
-        full_propagation,
-        i,
-        layers_cm,
-        layers_mm,
-        nu,
-        phi_,
-        prob,
-        pst,
-        segments,
-        slab_fracture,
-        t_,
-        this_df,
-    )
-
-
-@app.cell
-def __(t_):
-    thickwl = t_ > 150
-    return thickwl,
-
-
-@app.cell
-def __(dy_, thickwl):
-    dy_[thickwl]
-    return
-
-
-@app.cell
-def __(t_):
-    t_
-    return
-
-
-@app.cell
-def __():
-    from oracle.snowpilot import SnowPilotPipeline
-
-    pipeline = SnowPilotPipeline()
-    pipeline.download_recent_caaml(1)
-    return SnowPilotPipeline, pipeline
-
-
-@app.cell
-def __():
-    import oracle
-    return oracle,
-
-
-@app.cell
-def __():
-    return
 
 
 if __name__ == "__main__":
