@@ -61,10 +61,10 @@ def __(mo):
     import pandas as pd
     import numpy as np
     import matplotlib.pyplot as plt
+    import weac
 
     # Local application-specific imports
-    import weac
-    import plot
+    from oracle import plot
 
     # Dataclasses
     from dataclasses import dataclass
