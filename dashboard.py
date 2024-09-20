@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.8.7"
+__generated_with = "0.8.15"
 app = marimo.App(
     width="medium",
     app_title="ORACLE",
@@ -45,6 +45,7 @@ def __(mo):
           <li><input type="checkbox"> Determine distribution function for ERRs and use it as a metric for the probability of propagation</li>
           <li><input type="checkbox"> use example layering (e.g., from NCOMMS paper)</li>
           <li><input type="checkbox"> plot: distribution function of</li>
+          <li><input type="checkbox"> dynamic_table: update removal of rows and snow stratification plot dynamically </li>
         </ul>
         """
     )
@@ -140,34 +141,40 @@ def __(mo):
 
 
 @app.cell
-def __(b_resetlayers, run):
-    if run or b_resetlayers:
+def __(mo, run):
+    if run:
+        # 3D list of layer densities, thicknesses and hand hardness. Columns are density (kg/m^3), thickness (mm) and hand_hardness (N/A).
         layers = []
-        # NEW: changed to 3D-list including hand-hardness
-        # 3D list of top-to-bottom layer densities, thicknesses and hand hardness. Columns are density (kg/m^3), thickness (mm) and hand_hardness (N/A).
+        
         grain_list = []
-    return grain_list, layers
+        
+        # Global button ensuring updating of dynamic table and plot of snow stratification
+        b_update_table_plot = mo.ui.run_button(label="Update table and plot")
+    return b_update_table_plot, grain_list, layers
 
 
 @app.cell
 def __(mo):
     wl_thickness = mo.ui.number(
-        1, 100, 1, label="Insert weak layer thickness in mm"
+        1, 100, 1, label="Insert weak layer thickness in mm", value=30
     )
     wl_thickness
     return wl_thickness,
 
 
 @app.cell
-def __(grainform_df, mo):
+def __(add_layer, grainform_df, mo, reset_all_layers):
+    # Dropdown lists
     num_layer_thickness = mo.ui.number(
-        start=1, stop=1000, step=1, label="layer thickness in mm"
+        value=100, start=1, stop=1000, step=1, label="layer thickness in mm"
     )
     opt_grainform = grainform_df["abbreviation"]
-    drop_grainform = mo.ui.dropdown(options=opt_grainform, label="grain form")
+    drop_grainform = mo.ui.dropdown(value=opt_grainform[1], options=opt_grainform, label="grain form")
     num_hardness = mo.ui.number(start=1, stop=5, step=1, label="hand hardness")
-    b_addlayer = mo.ui.run_button(label="Add layer")
-    b_resetlayers = mo.ui.run_button(label="Reset all")
+
+    # Buttons
+    b_addlayer = mo.ui.run_button(label="Add layer", on_change=lambda value: add_layer(num_layer_thickness.value, drop_grainform.value, num_hardness.value))
+    b_resetlayers = mo.ui.run_button(label="Reset all", on_change=lambda value: reset_all_layers())
     return (
         b_addlayer,
         b_resetlayers,
@@ -210,34 +217,86 @@ def __(
 @app.cell
 def __(
     b_addlayer,
-    drop_grainform,
+    b_resetlayers,
+    b_update_table_plot,
+    deleting_layers,
     grain_list,
-    grainform_df,
     layers,
-    num_hardness,
-    num_layer_thickness,
+    mo,
+    opt_grainform,
+    update_grainform,
+    update_hand_hardness,
+    update_thickness,
 ):
-    if b_addlayer.value:
-        grainform_row = grainform_df.loc[
-            grainform_df["abbreviation"] == drop_grainform.value
-        ]
-        _a = grainform_row["a"].values[0]
-        _b = grainform_row["b"].values[0]
-        if drop_grainform.value == "RG":  # exponential case for Rounded grains
-            _density = _a + _b * (num_hardness.value**3.15)
-        else:
-            _density = _a + _b * num_hardness.value
+    if b_addlayer.value or b_resetlayers.value or b_update_table_plot.value:
 
-        # NEW: adding hand_hardness for easier use in snow stratification 
-        # layers.insert(0, [_density, num_layer_thickness.value])
-        layers.insert(0, [_density, num_layer_thickness.value, num_hardness.value])
-        grain_list.insert(0, drop_grainform.value)
-    return grainform_row,
+        # Creating the table
+        updated_thickness = mo.ui.array(
+                mo.ui.number(value=int(layer[1]), start=1, stop=1000, step=1,
+                            on_change=lambda value, i=i: update_thickness(i, value))
+                for i, layer in enumerate(layers)
+        )
+
+        updated_grainform = mo.ui.array(
+                mo.ui.dropdown(options=opt_grainform, value=grainform,
+                              on_change=lambda value, i=i: update_grainform(i, value))
+                for i, grainform in enumerate(grain_list)
+        )
+
+        updated_hand_hardness = mo.ui.array(
+                mo.ui.number(value=int(layer[2]), start=1, stop=5, step=1,
+                            on_change=lambda value, i=i: update_hand_hardness(i, value)
+                            )
+                for i, layer in enumerate(layers)
+        )
+
+        remove_buttons = mo.ui.array(
+                        mo.ui.run_button(label=f"Remove layer {i+1}",
+                                        on_change=lambda value, i=i: deleting_layers(i))
+                        for i, layer in enumerate(layers)
+        )
+
+        table = mo.hstack(
+            [
+                mo.vstack( ["Thickness (mm)", updated_thickness] ),
+                mo.vstack( ["Grain form", updated_grainform] ), 
+                mo.vstack( ["Hand hardness", updated_hand_hardness] ),
+                mo.vstack( ["Remove layers", remove_buttons] )
+            ]
+        )
+    return (
+        remove_buttons,
+        table,
+        updated_grainform,
+        updated_hand_hardness,
+        updated_thickness,
+    )
 
 
 @app.cell
-def __(b_addlayer, grain_list, layers, plot, run, wl_thickness):
-    if run or b_addlayer:
+def __(table):
+    table
+    return
+
+
+@app.cell
+def __(b_update_table_plot):
+    # Only possible to remove one layer at a time, after which update table and plot must be pressed
+    b_update_table_plot
+    return
+
+
+@app.cell
+def __(
+    b_addlayer,
+    b_update_table_plot,
+    grain_list,
+    layers,
+    plot,
+    run,
+    wl_thickness,
+):
+    if run or b_addlayer or b_update_table_plot:
         fig_2, ax_2 = plot.snow_stratification(wl_thickness.value, layers, grain_list)
     return ax_2, fig_2
 
@@ -246,6 +305,104 @@ def __(b_addlayer, grain_list, layers, plot, run, wl_thickness):
 def __(fig_2):
     fig_2
     return
+
+
+@app.cell
+def __(grain_list, grainform_df, layers):
+    def add_layer(_num_layer_thickness, _drop_grainform, _num_hardness):
+        global grain_list
+        global layers
+
+        _grainform_row = grainform_df.loc[
+            grainform_df["abbreviation"] == _drop_grainform
+        ]
+        _a = _grainform_row["a"].values[0]
+        _b = _grainform_row["b"].values[0]
+        if _drop_grainform == "RG":  # exponential case for Rounded grains
+            _density = _a + _b * (_num_hardness**3.15)
+        else:
+            _density = _a + _b * _num_hardness
+
+        layers.append([_density, _num_layer_thickness, _num_hardness])
+        grain_list.append(_drop_grainform)
+    return add_layer,
+
+
+@app.cell
+def __(grain_list, layers):
+    def reset_all_layers():
+        global grain_list
+        global layers
+
+        layers.clear()
+        grain_list.clear()
+    return reset_all_layers,
+
+
+@app.cell
+def __(layers):
+    def update_thickness(index, new_thickness):
+        global layers
+
+        layers[index][1] = new_thickness
+    return update_thickness,
+
+
+@app.cell
+def __(drop_grainform, grain_list, grainform_df, layers):
+    def update_grainform(index, new_grainform):
+        global grain_list
+        global layers
+
+        current_hardness = layers[index][2] 
+
+        grainform_row = grainform_df.loc[
+            grainform_df["abbreviation"] == new_grainform
+        ]
+        _a = grainform_row["a"].values[0]
+        _b = grainform_row["b"].values[0]
+        if drop_grainform.value == "RG":  # exponential case for Rounded grains
+            _density = _a + _b * (current_hardness**3.15)
+        else:
+            _density = _a + _b * current_hardness
+
+        grain_list[index] = new_grainform
+        layers[index][0] = _density
+    return update_grainform,
+
+
+@app.cell
+def __(drop_grainform, grain_list, grainform_df, layers):
+    def update_hand_hardness(index, new_hardness):
+        global layers
+        global grain_list
+
+        current_grainform = grain_list[index]
+
+        grainform_row = grainform_df.loc[
+            grainform_df["abbreviation"] == current_grainform
+        ]
+        _a = grainform_row["a"].values[0]
+        _b = grainform_row["b"].values[0]
+        if drop_grainform.value == "RG":  # exponential case for Rounded grains
+            _density = _a + _b * (new_hardness**3.15)
+        else:
+            _density = _a + _b * new_hardness
+
+        layers[index][2] = new_hardness
+        layers[index][0] = _density
+    return update_hand_hardness,
+
+
+@app.cell
+def __(grain_list, layers):
+    def deleting_layers(index):
+        global layers
+        global grain_list
+
+        layers.pop(index)
+        grain_list.pop(index)
+    return deleting_layers,
 
 
 @app.cell
