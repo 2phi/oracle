@@ -1,54 +1,17 @@
 {
   "type": "grid",
   "data": {
-    "columns": 100,
+    "columns": 3,
     "rowHeight": 10,
-    "bordered": false,
+    "maxWidth": 1000,
+    "bordered": true,
     "cells": [
       {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
         "position": [
-          14,
-          26,
-          34,
-          8
-        ]
-      },
-      {
-        "position": null
-      },
-      {
-        "position": [
-          14,
-          15,
-          81,
-          10
+          0,
+          8,
+          3,
+          21
         ]
       },
       {
@@ -76,96 +39,55 @@
         "position": null
       },
       {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
         "position": [
-          23,
-          35,
-          67,
-          41
+          0,
+          38,
+          3,
+          4
         ]
       },
       {
         "position": null
       },
       {
-        "position": null
+        "position": [
+          0,
+          29,
+          3,
+          9
+        ]
       },
       {
         "position": null
       },
       {
-        "position": null
+        "position": [
+          0,
+          92,
+          3,
+          59
+        ],
+        "scrollable": true
+      },
+      {
+        "position": [
+          0,
+          88,
+          3,
+          4
+        ],
+        "side": "right"
       },
       {
         "position": null
       },
       {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
+        "position": [
+          0,
+          42,
+          3,
+          46
+        ]
       },
       {
         "position": null
