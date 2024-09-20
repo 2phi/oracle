@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "oracle"
+version = "0.1.0"
+description = "Observation, Research, and Analysis of Collapse and Loading Experiments"
+authors = [
+    { name="Philipp Rosendahl", email="rosendahl@ismd.tu-darmstadt.de" },
+    { name="Valentin Adam", email="adam@ismd.tu-darmstadt.de" }
+]
+readme = "README.md"  # Optional, if you have a README file
+license = { text = "CC BY-NC-SA 4.0" }  # Optional, replace with your license
+requires-python = ">=3.10"
+
+[project.urls]
+"Source" = "https://github.com/2phi/oracle"  # Optional, if you have a repo
+
+[tool.setuptools.packages.find]
+where = ["oracle"]
