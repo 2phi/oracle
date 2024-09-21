@@ -560,6 +560,8 @@ def lognorm_distribution(
 
     # Plot the fitted distribution function
     if function and density:
+        plt.fill_between(x, y_data, zorder=zorder, alpha=.9, color='w')
+        plt.fill_between(x, y_data, zorder=zorder, alpha=.2)
         plt.plot(x, y_data, color='w', lw=3, zorder=zorder)
         plt.plot(x, y_data, zorder=zorder)
 
