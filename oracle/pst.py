@@ -120,7 +120,7 @@ class PropagationSawTestEngine:
 
         # Calculate energy release rates and bending stiffness
         G, Gi, Gii = model.gdif(C=C, phi=phi, **segments, unit='J/m^2')
-        D11 = model.D11
+        D11 = 1e-8 * model.D11
 
         # Return the results in a pd.Series format for dataframe processing
         return pd.Series({'Gc': G, 'GIc': Gi, 'GIIc': Gii, 'D11': D11})
