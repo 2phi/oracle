@@ -499,7 +499,8 @@ def lognorm_distribution(
             raise TypeError("zorder must be an integer or None.")
 
     # Unpack range
-    x_min, x_max = range
+    x_min = 1e-3 if log and range[0] <= 0 else range[0]
+    x_max = range[1]
 
     # Filter data if necessary
     if fit_to_range:
