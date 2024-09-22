@@ -430,7 +430,7 @@ def snow_stratification(weaklayer_thickness, layers, grain_list):
     return fig, ax
 
 
-def lognorm_distribution(
+def distribution(
     data: pd.Series,
     kind: str = 'pdf',
     bins: int = 75,
@@ -440,10 +440,11 @@ def lognorm_distribution(
     histogram: bool = True,
     function: bool = True,
     zorder: int | None = None,
-    log: bool = False,  # Added log argument
+    log: bool = False,
+    dist_type: str = 'lognorm',
 ):
     """
-    Fit and plot the lognormal distribution (PDF or CDF) for the given data.
+    Fit and plot the specified distribution (PDF or CDF) for the given data.
 
     Parameters
     ----------
@@ -470,17 +471,24 @@ def lognorm_distribution(
         1 for 'cdf'. If provided, uses the given value.
     log : bool, optional
         If True, plots with logarithmically spaced x-axes. Default is False.
+    dist_type : str, optional
+        Type of distribution to fit and plot: 'lognorm', 'cauchy', 'chi2', or 'expon'.
+        Default is 'lognorm'.
 
     Raises
     ------
     ValueError
         If the 'kind' parameter is not 'pdf' or 'cdf'.
+    ValueError
+        If the 'dist_type' parameter is not 'lognorm', 'cauchy', 'chi2', or 'expon'.
+    TypeError
+        If zorder is not an integer or None.
 
     Examples
     --------
     >>> data = pd.Series(np.random.lognormal(mean=1, sigma=0.5, size=1000))
-    >>> lognorm_distribution(data, kind='pdf', log=True)
-    >>> lognorm_distribution(data, kind='cdf', log=True)
+    >>> lognorm_distribution(data, kind='pdf', log=True, dist_type='lognorm')
+    >>> lognorm_distribution(data, kind='cdf', log=True, dist_type='cauchy')
     """
 
     # Set default zorder based on 'kind' if zorder is None
@@ -506,8 +514,35 @@ def lognorm_distribution(
     if fit_to_range:
         data = data[(data >= x_min) & (data <= x_max)]
 
-    # Fit the lognormal distribution to the data
-    shape, loc, scale = stats.lognorm.fit(data)
+    # Fit the specified distribution to the data
+    if dist_type == 'lognorm':
+        dist = stats.lognorm
+        params = dist.fit(data)
+        shape, loc, scale = params
+        args = (shape,)
+        kwargs = {'loc': loc, 'scale': scale}
+    elif dist_type == 'cauchy':
+        dist = stats.cauchy
+        params = dist.fit(data)
+        loc, scale = params
+        args = ()
+        kwargs = {'loc': loc, 'scale': scale}
+    elif dist_type == 'expon':
+        dist = stats.expon
+        params = dist.fit(data)
+        loc, scale = params
+        args = ()
+        kwargs = {'loc': loc, 'scale': scale}
+    elif dist_type == 'chi2':
+        dist = stats.chi2
+        params = dist.fit(data)
+        df, loc, scale = params
+        args = (df,)
+        kwargs = {'loc': loc, 'scale': scale}
+    else:
+        raise ValueError(
+            "Invalid 'dist_type' parameter. Must be 'lognorm', 'cauchy', 'chi2', or 'expon'."
+        )
 
     # Generate bin edges
     if log:
@@ -553,16 +588,16 @@ def lognorm_distribution(
 
     # Calculate the PDF or CDF based on the 'kind' parameter
     if kind == 'pdf':
-        y_data = stats.lognorm.pdf(x, shape, loc=loc, scale=scale)
+        y_data = dist.pdf(x, *args, **kwargs)
     elif kind == 'cdf':
-        y_data = stats.lognorm.cdf(x, shape, loc=loc, scale=scale)
+        y_data = dist.cdf(x, *args, **kwargs)
     else:
         raise ValueError("Invalid 'kind' parameter. Must be 'pdf' or 'cdf'.")
 
     # Plot the fitted distribution function
     if function and density:
         if not histogram:
-            plt.fill_between(x, y_data, zorder=zorder, alpha=.9, color='w')
+            plt.fill_between(x, y_data, zorder=zorder, alpha=.8, color='w')
             plt.fill_between(x, y_data, zorder=zorder, alpha=.2)
         plt.plot(x, y_data, color='w', lw=3, zorder=zorder)
         plt.plot(x, y_data, zorder=zorder)
