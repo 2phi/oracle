@@ -430,129 +430,21 @@ def snow_stratification(weaklayer_thickness, layers, grain_list):
     return fig, ax
 
 
-def lognorm_pdf(
-    data: pd.Series,
-    bins: int = 75,
-    range: tuple[float, float] = (0, 25),
-    density: bool = True,
-    histogram: bool = True,
-    function: bool = True,
-    zorder: int = 2,
-):
-    """
-    Fit and plot the probability distribution function using a lognormal distribution.
-
-    Parameters
-    ----------
-    data : pd.Series
-        Dataset.
-    bins : int, optional
-        Number of bins. Default is 75.
-    range : tuple[float, float], optional
-        Range to plot. Default is (0, 25).
-    density : bool, optional
-        Wether to plot the density. Default is True.
-    histogram : bool, optional
-        Wether to plot the histogram. Default is True.
-    function : bool, optional
-        Wether to plot the probability distribution function. Default is True.
-    zorder : int, optional
-        Z-order for plotting. Default is 2.
-    """
-
-    # Get histogram data and bins
-    hist_data, hist_bins = np.histogram(
-        data, bins=bins, range=range, density=density
-    )
-    hist_x = (hist_bins[:-1] + hist_bins[1:]) / 2
-
-    # Calculate the bin width and reduce it slightly to create a gap between bars
-    bin_width = hist_bins[1] - hist_bins[0]
-    bar_width = 0.75 * bin_width
-
-    # Calc the probability density function
-    x = np.linspace(min(data), min(max(data), range[1]), 1000)
-    shape, loc, scale = stats.lognorm.fit(data)
-    pdf_data = stats.lognorm.pdf(x, shape, loc, scale)
-
-    # Plot
-    if histogram:
-        plt.bar(hist_x, hist_data, width=bar_width, color='w', zorder=zorder)
-        plt.bar(hist_x, hist_data, width=bar_width, alpha=0.5, zorder=zorder)
-    if function and density:
-        plt.plot(x, pdf_data, color='w', lw=3, zorder=zorder)
-        plt.plot(x, pdf_data, zorder=zorder)
-
-    return plt.gca()
-
-
-def lognorm_cdf(
-    data: pd.Series,
-    bins: int = 75,
-    range: tuple[float, float] = (0, 25),
-    density: bool = True,
-    histogram: bool = True,
-    function: bool = True,
-    zorder: int = 1,
-):
-    """
-    Fit and plot the cumulative distribution function using a lognormal distribution.
-
-    Parameters
-    ----------
-    data : pd.Series
-        Dataset.
-    bins : int, optional
-        Number of bins. Default is 75.
-    range : tuple[float, float], optional
-        Range to plot. Default is (0, 25).
-    density : bool, optional
-        Wether to plot the histogram. Default is True.
-    histogram : bool, optional
-        Wether to plot the histogram. Default is True.
-    function : bool, optional
-        Wether to plot the cumulative distribution function. Default is True.
-    zorder : int, optional
-        Z-order for plotting. Default is 1.
-    """
-
-    # Get histogram data and bins
-    hist_data, hist_bins = np.histogram(
-        data, bins=bins, range=range, density=density
-    )
-    hist_data = np.cumsum(hist_data) * np.diff(hist_bins)
-    hist_x = (hist_bins[:-1] + hist_bins[1:]) / 2
-
-    # Calculate the bin width and reduce it slightly to create a gap between bars
-    bin_width = hist_bins[1] - hist_bins[0]
-    bar_width = 0.75 * bin_width
-
-    # Calc the cumulative distribution function
-    x = np.linspace(min(data), min(max(data), range[1]), 1000)
-    shape, loc, scale = stats.lognorm.fit(data)
-    cdf_data = stats.lognorm.cdf(x, shape, loc, scale)
-
-    # Plot
-    if histogram:
-        plt.bar(hist_x, hist_data, width=bar_width, color='w', zorder=zorder)
-        plt.bar(hist_x, hist_data, width=bar_width, alpha=0.5, zorder=zorder)
-    if function and density:
-        plt.plot(x, cdf_data, color='w', lw=3, zorder=zorder)
-        plt.plot(x, cdf_data, zorder=zorder)
-
-
-def lognorm_distribution(
+def distribution(
     data: pd.Series,
     kind: str = 'pdf',
     bins: int = 75,
     range: tuple[float, float] = (0, 25),
+    fit_to_range: bool = False,
     density: bool = True,
     histogram: bool = True,
     function: bool = True,
     zorder: int | None = None,
+    log: bool = False,
+    dist_type: str = 'lognorm',
 ):
     """
-    Fit and plot the lognormal distribution (PDF or CDF) for the given data.
+    Fit and plot the specified distribution (PDF or CDF) for the given data.
 
     Parameters
     ----------
@@ -564,6 +456,8 @@ def lognorm_distribution(
         Number of bins for the histogram. Default is 75.
     range : tuple[float, float], optional
         Range for the histogram and plot. Default is (0, 25).
+    fit_to_range : bool, optional
+        If True, filters data to be within the specified range. Default is False.
     density : bool, optional
         If True, the histogram is normalized to form a probability density.
         Default is True.
@@ -575,17 +469,26 @@ def lognorm_distribution(
     zorder : int or None, optional
         The drawing order of plot elements. If None, defaults to 2 for 'pdf' and
         1 for 'cdf'. If provided, uses the given value.
+    log : bool, optional
+        If True, plots with logarithmically spaced x-axes. Default is False.
+    dist_type : str, optional
+        Type of distribution to fit and plot: 'lognorm', 'cauchy', 'chi2', or 'expon'.
+        Default is 'lognorm'.
 
     Raises
     ------
     ValueError
         If the 'kind' parameter is not 'pdf' or 'cdf'.
+    ValueError
+        If the 'dist_type' parameter is not 'lognorm', 'cauchy', 'chi2', or 'expon'.
+    TypeError
+        If zorder is not an integer or None.
 
     Examples
     --------
     >>> data = pd.Series(np.random.lognormal(mean=1, sigma=0.5, size=1000))
-    >>> lognorm_distribution(data, kind='pdf')
-    >>> lognorm_distribution(data, kind='cdf')
+    >>> lognorm_distribution(data, kind='pdf', log=True, dist_type='lognorm')
+    >>> lognorm_distribution(data, kind='cdf', log=True, dist_type='cauchy')
     """
 
     # Set default zorder based on 'kind' if zorder is None
@@ -603,51 +506,102 @@ def lognorm_distribution(
         if not isinstance(zorder, int):
             raise TypeError("zorder must be an integer or None.")
 
-    # Fit the lognormal distribution to the data
-    shape, loc, scale = stats.lognorm.fit(data, floc=0)
+    # Unpack range
+    x_min = 1e-3 if log and range[0] <= 0 else range[0]
+    x_max = range[1]
 
-    # Generate x values for plotting the function
-    x = np.linspace(max(min(data), range[0]), min(max(data), range[1]), 1000)
+    # Filter data if necessary
+    if fit_to_range:
+        data = data[(data >= x_min) & (data <= x_max)]
 
-    # Calculate the PDF or CDF based on the 'kind' parameter
-    if kind == 'pdf':
-        y_data = stats.lognorm.pdf(x, shape, loc=loc, scale=scale)
-    elif kind == 'cdf':
-        y_data = stats.lognorm.cdf(x, shape, loc=loc, scale=scale)
+    # Fit the specified distribution to the data
+    if dist_type == 'lognorm':
+        dist = stats.lognorm
+        params = dist.fit(data)
+        shape, loc, scale = params
+        args = (shape,)
+        kwargs = {'loc': loc, 'scale': scale}
+    elif dist_type == 'cauchy':
+        dist = stats.cauchy
+        params = dist.fit(data)
+        loc, scale = params
+        args = ()
+        kwargs = {'loc': loc, 'scale': scale}
+    elif dist_type == 'expon':
+        dist = stats.expon
+        params = dist.fit(data)
+        loc, scale = params
+        args = ()
+        kwargs = {'loc': loc, 'scale': scale}
+    elif dist_type == 'chi2':
+        dist = stats.chi2
+        params = dist.fit(data)
+        df, loc, scale = params
+        args = (df,)
+        kwargs = {'loc': loc, 'scale': scale}
     else:
-        raise ValueError("Invalid 'kind' parameter. Must be 'pdf' or 'cdf'.")
+        raise ValueError(
+            "Invalid 'dist_type' parameter. Must be 'lognorm', 'cauchy', 'chi2', or 'expon'."
+        )
 
-    # Get histogram data and bins
-    hist_data, hist_bins = np.histogram(
-        data, bins=bins, range=range, density=density
-    )
-    hist_x = (hist_bins[:-1] + hist_bins[1:]) / 2
+    # Generate bin edges
+    if log:
+        bins_edges = np.logspace(np.log10(x_min), np.log10(x_max), bins + 1)
+    else:
+        bins_edges = np.linspace(x_min, x_max, bins + 1)
+
+    # Compute the histogram
+    hist_data, hist_bins = np.histogram(data, bins=bins_edges, density=density)
 
     # For CDF, compute the cumulative sum of histogram data
     if kind == 'cdf':
-        hist_data = np.cumsum(hist_data)
-        if density:
-            hist_data = (
-                hist_data / hist_data[-1]
-            )  # Normalize to 1 if density is True
+        # Multiply by bin widths to get probability masses
+        hist_data = np.cumsum(hist_data * np.diff(hist_bins))
 
-    # Calculate the bin width and reduce it slightly to create a gap between bars
-    bin_width = hist_bins[1] - hist_bins[0]
-    bar_width = 0.75 * bin_width
+    # Calculate bin widths
+    bar_widths = 0.7 * np.diff(hist_bins)
 
     # Plot the histogram
     if histogram:
-        plt.bar(hist_x, hist_data, width=bar_width, color='w', zorder=zorder)
-        plt.bar(hist_x, hist_data, width=bar_width, alpha=0.5, zorder=zorder)
+        plt.bar(
+            hist_bins[:-1],
+            hist_data,
+            width=bar_widths,
+            color='w',
+            zorder=zorder,
+            align='center',
+        )
+        plt.bar(
+            hist_bins[:-1],
+            hist_data,
+            width=bar_widths,
+            alpha=0.5,
+            zorder=zorder,
+            align='center',
+        )
+
+    # Generate x values for plotting the function
+    if log:
+        x = np.logspace(np.log10(x_min), np.log10(x_max), 1000)
+    else:
+        x = np.linspace(x_min, x_max, 1000)
+
+    # Calculate the PDF or CDF based on the 'kind' parameter
+    if kind == 'pdf':
+        y_data = dist.pdf(x, *args, **kwargs)
+    elif kind == 'cdf':
+        y_data = dist.cdf(x, *args, **kwargs)
+    else:
+        raise ValueError("Invalid 'kind' parameter. Must be 'pdf' or 'cdf'.")
 
     # Plot the fitted distribution function
     if function and density:
+        if not histogram:
+            plt.fill_between(x, y_data, zorder=zorder, alpha=.8, color='w')
+            plt.fill_between(x, y_data, zorder=zorder, alpha=.2)
         plt.plot(x, y_data, color='w', lw=3, zorder=zorder)
         plt.plot(x, y_data, zorder=zorder)
 
-    # Label the axes
-    plt.xlabel('Value')
-    if kind == 'pdf':
-        plt.ylabel('Probability Density')
-    elif kind == 'cdf':
-        plt.ylabel('Cumulative Probability')
+    # Set the x-axis to logarithmic scale if log=True
+    if log:
+        plt.xscale('log')
