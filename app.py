@@ -36,16 +36,6 @@ def __(mo):
           <li><input type="checkbox"> user input: column length</li>
           <li><input type="checkbox"> user input: cut length</li>
           <li><input type="checkbox"> Run WEAC to compute ERR</li>
-          <li><input type="checkbox"> Dataset: NCOMMS data</li>
-          <li><input type="checkbox"> Determine distribution function for ERRs and use it as a metric for the probability of propagation</li>
-        </ul>
-
-        <h3 style="font-family: Gill Sans, Tahoma;">🔬 Paper</h3>
-        <ul>
-          <li><input type="checkbox"> Determine distribution function for ERRs and use it as a metric for the probability of propagation</li>
-          <li><input type="checkbox"> use example layering (e.g., from NCOMMS paper)</li>
-          <li><input type="checkbox"> plot: distribution function of</li>
-          <li><input type="checkbox"> dynamic_table: update removal of rows and snow stratification plot dynamically </li>
         </ul>
         """
     )
@@ -136,7 +126,7 @@ def __(grainform_df, mo, plot):
 
 @app.cell
 def __(mo):
-    mo.md("""**User Interface**""")
+    mo.md("""<h2 style="font-family: Gill Sans, Tahoma;">🖥️ USER INTERFACE</h2><hr>""")
     return
 
 
