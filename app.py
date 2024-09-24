@@ -1,399 +1,612 @@
-import marimo
+import streamlit as st
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 
-__generated_with = "0.8.15"
-app = marimo.App(
-    width="medium",
-    app_title="ORACLE",
-    layout_file="layouts/app.grid.json",
+# Set page configuration
+st.set_page_config(page_title="ORACLE", layout="centered")
+
+# Hide Streamlit's default styles to allow custom HTML/CSS
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-color: #FFFFFF;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.html(
+    body="""
+        <style>
+            /* hide hyperlink anchors generated next to headers */
+            h1 > div > a {
+                display: none !important;
+            }
+            h2 > div > a {
+                display: none !important;
+            }
+            h3 > div > a {
+                display: none !important;
+            }
+            h4 > div > a {
+                display: none !important;
+            }
+            h5 > div > a {
+                display: none !important;
+            }
+            h6 > div > a {
+                display: none !important;
+            }
+        </style>
+    """,
+)
+
+# Display the title and image
+st.html(
+    """
+    <div style="text-align: center;">
+        <img src="https://github.com/2phi/oracle/raw/main/img/steampunk-v1.png" alt="ORACLE" width="200">
+        <h1>ORACLE</h1>
+        <p><b>Observation, Research, and Analysis of<br>Collapse and Loading Experiments</b></p>
+    </div>
+    """
+)
+
+# Display the TODO list (Optional)
+st.html(
+    """
+    <h2 style= >⏳ tudu</h2>
+    <ul style="list-style-type: none;">
+      <li><input type="checkbox"> User input: inclination</li>
+      <li><input type="checkbox"> User input: cutting direction</li>
+      <li><input type="checkbox"> User input: slab faces (normal, vertical)</li>
+      <li><input type="checkbox"> User input: column length</li>
+      <li><input type="checkbox"> User input: cut length</li>
+      <li><input type="checkbox"> Run WEAC to compute ERR</li>
+    </ul>
+    """
+)
+
+# Grainforms data
+grainforms = [
+    (0, "PP", 45, 36, "Precipitation particles"),
+    (1, "PPgp", 83, 37, "Graupel"),
+    (2, "DF", 65, 36, "Decomposing and fragmented precipitation particles"),
+    (3, "RG", 154, 1.51, "Rounded grains"),
+    (4, "RGmx", 91, 42, "Rounded mixed forms"),
+    (5, "FC", 112, 46, "Faceted crystals"),
+    (6, "FCmx", 56, 64, "Faceted mixed forms"),
+    (7, "DH", 185, 25, "Depth hoar"),
+    (8, "MFCr", 292.25, 0, "Melt-freeze crusts"),
+]
+
+grainform_df = pd.DataFrame(
+    grainforms, columns=["id", "abbreviation", "a", "b", "description"]
+)
+
+# Display the grainform table
+# st.table(grainform_df.drop(columns=["id"]))
+
+
+# Function to plot density vs hand hardness
+def density_vs_hand_hardness(grainform_df):
+    hand_hardness = np.arange(1, 6, 0.1)
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    for index, row in grainform_df.iterrows():
+        a = row["a"]
+        b = row["b"]
+        if row["abbreviation"] == "RG":
+            densities = a + b * (hand_hardness**3.15)
+        else:
+            densities = a + b * hand_hardness
+        ax.plot(hand_hardness, densities, label=row["abbreviation"])
+
+    ax.set_ylim(50, 450)
+    ax.set_xlim(1, 5)
+    ax.set_xlabel("Hand Hardness")
+    ax.set_ylabel("Density (kg/m³)")
+    ax.set_title("Density vs Hand Hardness for Different Grain Types")
+    ax.legend(loc="best")
+    ax.grid(True)
+    return fig
+
+
+# Plot and display the density vs hand hardness plot
+fig = density_vs_hand_hardness(grainform_df)
+# st.pyplot(fig)
+
+
+# Initialize session state variables
+if "layers" not in st.session_state:
+    st.session_state.layers = []
+
+if "grain_list" not in st.session_state:
+    st.session_state.grain_list = []
+
+
+# Functions to modify session state
+def add_layer():
+    num_layer_thickness = st.session_state["layer_thickness"]
+    drop_grainform = st.session_state["grainform"]
+    num_hardness = st.session_state["hand_hardness"]
+
+    grainform_row = grainform_df.loc[
+        grainform_df["abbreviation"] == drop_grainform
+    ]
+    a = grainform_row["a"].values[0]
+    b = grainform_row["b"].values[0]
+    if drop_grainform == "RG":
+        density = a + b * (num_hardness**3.15)
+    else:
+        density = a + b * num_hardness
+
+    st.session_state.layers.append(
+        [density, num_layer_thickness, num_hardness]
+    )
+    st.session_state.grain_list.append(drop_grainform)
+
+
+def reset_all_layers():
+    st.session_state.layers = []
+    st.session_state.grain_list = []
+
+
+def update_thickness(index, new_thickness):
+    st.session_state.layers[index][1] = new_thickness
+
+
+def update_grainform(index, new_grainform):
+    current_hardness = st.session_state.layers[index][2]
+    grainform_row = grainform_df.loc[
+        grainform_df["abbreviation"] == new_grainform
+    ]
+    a = grainform_row["a"].values[0]
+    b = grainform_row["b"].values[0]
+    if new_grainform == "RG":
+        density = a + b * (current_hardness**3.15)
+    else:
+        density = a + b * current_hardness
+
+    st.session_state.grain_list[index] = new_grainform
+    st.session_state.layers[index][0] = density
+
+
+def update_hand_hardness(index, new_hardness):
+    current_grainform = st.session_state.grain_list[index]
+    grainform_row = grainform_df.loc[
+        grainform_df["abbreviation"] == current_grainform
+    ]
+    a = grainform_row["a"].values[0]
+    b = grainform_row["b"].values[0]
+    if current_grainform == "RG":
+        density = a + b * (new_hardness**3.15)
+    else:
+        density = a + b * new_hardness
+
+    st.session_state.layers[index][2] = new_hardness
+    st.session_state.layers[index][0] = density
+
+
+def delete_layer(index):
+    st.session_state.layers.pop(index)
+    st.session_state.grain_list.pop(index)
+    # No need for st.experimental_rerun()
+
+
+# UI for adding layers
+st.markdown(
+    '<h2>✍🏼 Add layers bottom to top</h2>',
+    unsafe_allow_html=True,
+)
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.number_input(
+        "Layer thickness (mm)",
+        min_value=1,
+        max_value=1000,
+        value=100,
+        step=1,
+        key="layer_thickness",
+    )
+with col2:
+    grain_options = grainform_df["abbreviation"].tolist()
+    st.selectbox("Grain type", options=grain_options, index=1, key="grainform")
+with col3:
+    st.number_input(
+        "Hand hardness",
+        min_value=1,
+        max_value=5,
+        value=2,
+        step=1,
+        key="hand_hardness",
+    )
+
+col4, col5 = st.columns(2)
+
+with col4:
+    if st.button("Add layer"):
+        add_layer()
+with col5:
+    if st.button("Reset all layers"):
+        reset_all_layers()
+
+# Display the table of layers
+if len(st.session_state.layers) > 0:
+    st.markdown("### Layers")
+    for i, (layer, grain) in enumerate(
+        zip(st.session_state.layers, st.session_state.grain_list)
+    ):
+        col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
+        with col1:
+            new_thickness = st.number_input(
+                f"Thickness (mm) for layer {i+1}",
+                min_value=1,
+                max_value=1000,
+                value=int(layer[1]),
+                step=1,
+                key=f"thickness_{i}",
+            )
+            if new_thickness != layer[1]:
+                update_thickness(i, new_thickness)
+        with col2:
+            new_grainform = st.selectbox(
+                f"Grain form for layer {i+1}",
+                options=grain_options,
+                index=grain_options.index(grain),
+                key=f"grainform_{i}",
+            )
+            if new_grainform != grain:
+                update_grainform(i, new_grainform)
+        with col3:
+            new_hardness = st.number_input(
+                f"Hand hardness for layer {i+1}",
+                min_value=1,
+                max_value=5,
+                value=int(layer[2]),
+                step=1,
+                key=f"hardness_{i}",
+            )
+            if new_hardness != layer[2]:
+                update_hand_hardness(i, new_hardness)
+        with col4:
+            if st.button(f"Remove layer {i+1}", key=f"remove_{i}"):
+                delete_layer(i)
+                # No need for st.experimental_rerun()
+                # The app will automatically rerun on state change
+
+# Set weak-layer thickness
+wl_thickness = st.number_input(
+    "Set weak-layer thickness (mm)",
+    min_value=1,
+    max_value=100,
+    value=30,
+    step=1,
 )
 
 
-@app.cell
-def __():
-    import marimo as mo
+# Function to plot snow stratification
+def snow_stratification(weaklayer_thickness, layers, grain_list):
+    fig, ax = plt.subplots(figsize=(10, 5))
+    x_max = 550
+    medium_blue = plt.cm.Blues(0.5)
+    dark_blue = plt.cm.Blues(0.99)
+    previous_density = 0
+    hardness_mapping = {1: "F", 2: "4F", 3: "1F", 4: "P", 5: "K"}
 
-    mo.md(
-        '<h1 style="font-family: Gill Sans, Tahoma;">🔮 ORACLE</h1>'
-        '<p align="center"><b>Observation, Research, and Analysis of Collapse and Loading Experiments</b></p>'
-        '<p align="center">Implementation of closed-form analytical models for the analysis of anticracks in the avalanche release process.</p>'
+    current_table = weaklayer_thickness
+    first_column_start = -0.7 * 100
+    second_column_start = -1.9 * 100
+    third_column_start = -2.4 * 100
+    third_column_end = -2.8 * 100
+
+    first_column_midpoint = (first_column_start + second_column_start) / 2
+    second_column_midpoint = (third_column_start + second_column_start) / 2
+    third_column_midpoint = (third_column_end + third_column_start) / 2
+
+    total_height = weaklayer_thickness + sum(
+        thickness for _, thickness, _ in layers
     )
-    return mo,
+    y_max = max(total_height, 500) * 1.15
+    column_header = y_max / 1.1
+    avg_height = (column_header - weaklayer_thickness) / max(1, (len(layers)))
+    substratum_thickness = 40
+    substratum_bottom = -substratum_thickness
+    substratum_top = 0
 
-
-@app.cell
-def __(mo):
-    mo.md(
-        """
-        <div style="margin-bottom: 2px;">
-            <h2 style="font-family: Gill Sans, Tahoma;">⏳ TODO</h2><hr><br>
-        </div>
-
-        <h3 style="font-family: Gill Sans, Tahoma;">🎮 App</h3>
-        <ul>
-          <li><input type="checkbox"> user input: inclination</li>
-          <li><input type="checkbox"> user input: cutting direction</li>
-          <li><input type="checkbox"> user input: slab faces (normal, vertical)</li>
-          <li><input type="checkbox"> user input: column length</li>
-          <li><input type="checkbox"> user input: cut length</li>
-          <li><input type="checkbox"> Run WEAC to compute ERR</li>
-        </ul>
-        """
+    # Plot the substratum and annotate text
+    ax.fill_betweenx(
+        [substratum_bottom, substratum_top], 0, x_max, color=dark_blue, alpha=1
     )
-    return
-
-
-@app.cell
-def __(mo):
-    # Standard library imports
-    import os
-
-    # Third-party imports
-    import pandas as pd
-    import numpy as np
-    import matplotlib.pyplot as plt
-    import weac
-
-    # Local application-specific imports
-    from oracle import plot
-
-    # Dataclasses
-    from dataclasses import dataclass
-
-    mo.md('<h2 style="font-family: Gill Sans, Tahoma;">⚙️ PREAMBLE</h2>' "---")
-    return dataclass, np, os, pd, plot, plt, weac
-
-
-@app.cell
-def __(__file__, os):
-    # Change the CWD to the script's directory
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    os.chdir(script_dir)
-
-    # Define run variable (helper for buttons)
-    run = True
-    return run, script_dir
-
-
-@app.cell
-def __(mo, pd):
-    # Hand hardness density parametrization according to Geldsetzer & Jamieson (2000) [1]
-    # [1] https://arc.lib.montana.edu/snow-science/objects/issw-2000-121-127.pdf
-    grainforms = [
-        # ID, abbrv, symbol, a, b, description
-        (0, "PP", 45, 36, "Precipitation particles"),
-        (1, "PPgp", 83, 37, "Graupel"),
-        (2, "DF", 65, 36, "Decomposing and fragmented precipitation particles"),
-        (3, "RG", 154, 1.51, "Rounded grains"),
-        (4, "RGmx", 91, 42, "Rounded mixed forms"),
-        (5, "FC", 112, 46, "Faceted crystals"),
-        (6, "FCmx", 56, 64, "Faceted mixed forms"),
-        (7, "DH", 185, 25, "Depth hoar"),
-        # MFCr density is constant and takes as mean of Table 1 in [1]
-        (8, "MFCr", 292.25, 0, "Melt-freeze crusts"),
-    ]
-
-    # Collect grainforms info in a dataframe
-    grainform_df = pd.DataFrame(
-        grainforms, columns=["id", "abbreviation", "a", "b", "type"]
+    ax.text(
+        250,
+        (substratum_bottom + substratum_top) / 2,
+        "substratum",
+        ha="center",
+        va="center",
+        color="white",
+        fontsize=8,
     )
 
-    # Provide a table view of the dataframe
-    grainform_table_view = mo.ui.table(
-        data=grainform_df,
-        show_column_summaries=False,
-        selection=None,
-        label="Hand-hardness-to-density parametrization of depending on grain type",
-    )
+    # Plot the weak layer at the bottom
+    current_height = weaklayer_thickness
+    weak_layer_top = weaklayer_thickness
 
-    mo.md(
-        '<h2 style="font-family: Gill Sans, Tahoma;">⚖️ DENSITY PARAMETRIZATION</h2><hr>'
-    )
-    return grainform_df, grainform_table_view, grainforms
-
-
-@app.cell
-def __(grainform_table_view):
-    grainform_table_view
-    return
-
-
-@app.cell
-def __(grainform_df, mo, plot):
-    _fig, _axis = plot.density_vs_hand_hardness(grainform_df)
-    mo.mpl.interactive(_fig)
-    return
-
-
-@app.cell
-def __(mo):
-    mo.md("""<h2 style="font-family: Gill Sans, Tahoma;">🖥️ USER INTERFACE</h2><hr>""")
-    return
-
-
-@app.cell
-def __(mo, run):
-    if run:
-        # 3D list of layer densities, thicknesses and hand hardness. Columns are density (kg/m^3), thickness (mm) and hand_hardness (N/A).
-        layers = []
-
-        grain_list = []
-
-        # Global button ensuring updating of dynamic table and plot of snow stratification
-        b_update_table_plot = mo.ui.run_button(label="Update table and plot")
-    return b_update_table_plot, grain_list, layers
-
-
-@app.cell
-def __(mo):
-    wl_thickness = mo.ui.number(
-        1, 100, 1, label="Insert weak layer thickness in mm", value=30
-    )
-    wl_thickness
-    return wl_thickness,
-
-
-@app.cell
-def __(add_layer, grainform_df, mo, reset_all_layers):
-    # Dropdown lists
-    num_layer_thickness = mo.ui.number(
-        value=100, start=1, stop=1000, step=1, label="layer thickness in mm"
-    )
-    opt_grainform = grainform_df["abbreviation"]
-    drop_grainform = mo.ui.dropdown(value=opt_grainform[1], options=opt_grainform, label="grain form")
-    num_hardness = mo.ui.number(start=1, stop=5, step=1, label="hand hardness")
-
-    # Buttons
-    b_addlayer = mo.ui.run_button(label="Add layer", on_change=lambda value: add_layer(num_layer_thickness.value, drop_grainform.value, num_hardness.value))
-    b_resetlayers = mo.ui.run_button(label="Reset all", on_change=lambda value: reset_all_layers())
-    return (
-        b_addlayer,
-        b_resetlayers,
-        drop_grainform,
-        num_hardness,
-        num_layer_thickness,
-        opt_grainform,
-    )
-
-
-@app.cell
-def __(
-    b_addlayer,
-    b_resetlayers,
-    drop_grainform,
-    mo,
-    num_hardness,
-    num_layer_thickness,
-):
-    mo.vstack(
-        [
-            "Add layers from bottom to top:",
-            mo.hstack(
-                [
-                    num_layer_thickness,
-                    drop_grainform,
-                    num_hardness,
-                    b_addlayer,
-                    b_resetlayers,
-                ],
-                justify="center",
-            ),
-        ],
-        align="start",
-        justify="space-between",
-    )
-    return
-
-
-@app.cell
-def __(
-    b_addlayer,
-    b_resetlayers,
-    b_update_table_plot,
-    deleting_layers,
-    grain_list,
-    layers,
-    mo,
-    opt_grainform,
-    update_grainform,
-    update_hand_hardness,
-    update_thickness,
-):
-    if b_addlayer.value or b_resetlayers.value or b_update_table_plot.value:
-
-        # Creating the table
-        updated_thickness = mo.ui.array(
-                mo.ui.number(value=int(layer[1]), start=1, stop=1000, step=1,
-                            on_change=lambda value, i=i: update_thickness(i, value))
-                for i, layer in enumerate(layers)
+    if len(layers) > 0:
+        ax.fill_betweenx(
+            [0, weak_layer_top],
+            0,
+            (layers[0][0]) / 2,
+            color="coral",
+            alpha=0.3,
+            hatch="x",
+        )
+        ax.text(
+            layers[0][0],
+            weaklayer_thickness / 2,
+            "weak layer",
+            ha="right",
+            va="center",
+            color="coral",
+            fontsize=8,
+        )
+    else:
+        ax.fill_betweenx(
+            [0, weak_layer_top], 0, x_max, color="coral", alpha=0.3, hatch="x"
+        )
+        ax.text(
+            250,
+            weaklayer_thickness / 2,
+            "weak layer",
+            ha="center",
+            va="center",
+            color="coral",
+            fontsize=8,
         )
 
-        updated_grainform = mo.ui.array(
-                mo.ui.dropdown(options=opt_grainform, value=grainform,
-                              on_change=lambda value, i=i: update_grainform(i, value))
-                for i, grainform in enumerate(grain_list)
+    # Loop to plot each layer from bottom to top
+    for (density, thickness, hand_hardness), grain in zip(layers, grain_list):
+        layer_bottom = current_height
+        layer_top = current_height + thickness
+        table_bottom = current_table
+        table_top = current_table + min(avg_height, 50)
+        color = plt.cm.Blues(0.25)
+        hatch = "//" if grain == "mfc" else None
+
+        ax.fill_betweenx(
+            [layer_bottom + 1, layer_top],
+            0,
+            density,
+            color=color,
+            alpha=0.8,
+            hatch=hatch,
+            zorder=1,
+        )
+        ax.plot(
+            [density, density],
+            [layer_bottom + 1, layer_top],
+            color=dark_blue,
+            linestyle="-",
+            linewidth=1,
+        )
+        ax.plot(
+            [previous_density, density],
+            [layer_bottom, layer_bottom],
+            color=dark_blue,
+            linestyle="-",
+            linewidth=1,
+        )
+        previous_density = density
+
+        ax.plot(
+            [0, -10],
+            [layer_bottom, layer_bottom],
+            color="black",
+            linestyle="-",
+            linewidth=0.5,
+        )
+        ax.text(
+            -12,
+            layer_bottom,
+            round(layer_bottom / 10),
+            ha="left",
+            va="center",
+            color="black",
+            fontsize=7,
         )
 
-        updated_hand_hardness = mo.ui.array(
-                mo.ui.number(value=int(layer[2]), start=1, stop=5, step=1,
-                            on_change=lambda value, i=i: update_hand_hardness(i, value)
-                            )
-                for i, layer in enumerate(layers)
+        ax.plot(
+            [first_column_start, third_column_end],
+            [table_bottom, table_bottom],
+            color="grey",
+            linestyle="dotted",
+            linewidth=0.5,
         )
 
-        remove_buttons = mo.ui.array(
-                        mo.ui.run_button(label=f"Remove layer {i+1}",
-                                        on_change=lambda value, i=i: deleting_layers(i))
-                        for i, layer in enumerate(layers)
+        ax.text(
+            first_column_midpoint,
+            (table_bottom + table_top) / 2,
+            round(density),
+            ha="center",
+            va="center",
+            color="black",
+            fontsize=8,
         )
 
-        table = mo.hstack(
-            [
-                mo.vstack( ["Thickness (mm)", updated_thickness] ),
-                mo.vstack( ["Grain form", updated_grainform] ), 
-                mo.vstack( ["Hand hardness", updated_hand_hardness] ),
-                mo.vstack( ["Remove layers", remove_buttons] )
-            ]
+        ax.text(
+            second_column_midpoint,
+            (table_bottom + table_top) / 2,
+            grain,
+            ha="center",
+            va="center",
+            color="black",
+            fontsize=8,
         )
-    return (
-        remove_buttons,
-        table,
-        updated_grainform,
-        updated_hand_hardness,
-        updated_thickness,
+
+        ax.text(
+            third_column_midpoint,
+            (table_bottom + table_top) / 2,
+            hardness_mapping.get(hand_hardness, "Unknown hardness"),
+            ha="center",
+            va="center",
+            color="black",
+            fontsize=8,
+        )
+
+        ax.plot(
+            [0, first_column_start],
+            [layer_bottom, table_bottom],
+            color="grey",
+            linestyle="dotted",
+            linewidth=0.25,
+        )
+        ax.plot(
+            [0, first_column_start],
+            [layer_top, table_top],
+            color="grey",
+            linestyle="dotted",
+            linewidth=0.25,
+        )
+
+        current_height = layer_top
+        current_table = table_top
+
+    ax.plot(
+        [0, -10],
+        [total_height, total_height],
+        color="black",
+        linestyle="-",
+        linewidth=0.5,
+    )
+    ax.text(
+        -12,
+        total_height,
+        round(total_height / 10),
+        ha="left",
+        va="center",
+        color="black",
+        fontsize=7,
+    )
+    ax.plot(
+        [previous_density, 0],
+        [total_height, total_height],
+        color=dark_blue,
+        linestyle="-",
+        linewidth=1,
     )
 
+    ax.set_ylim(substratum_bottom, y_max)
+    y_grid = np.arange(0, column_header, 100)
+    for y in y_grid:
+        ax.plot(
+            [0, x_max],
+            [y, y],
+            color="grey",
+            linestyle="--",
+            linewidth=0.5,
+            zorder=0,
+        )
+    y_tick_positions = y_grid
+    y_tick_labels = [pos // 10 for pos in y_tick_positions]
+    plt.yticks(ticks=y_tick_positions, labels=y_tick_labels)
+    ax.set_ylabel("Height (cm)")
 
-@app.cell
-def __(table):
-    table
-    return
+    ax.set_xlim(third_column_end, x_max)
+    ax.invert_xaxis()
+    ax.xaxis.set_ticks_position("top")
+    ax.xaxis.set_label_position("top")
+    x_ticks = [100, 200, 300, 400, 500]
+    ax.set_xticks(x_ticks)
+    ax.tick_params(axis="x", colors=medium_blue, direction="in", pad=-15)
+    title_position = 0.35
+    ax.set_xlabel("Density (kg/m³)", x=title_position, color=medium_blue)
 
+    ax.plot(
+        [0, 0],
+        [substratum_bottom, y_max],
+        color="black",
+        linestyle="-",
+        linewidth=1,
+    )
+    ax.plot(
+        [first_column_start, first_column_start],
+        [weaklayer_thickness, y_max],
+        color="grey",
+        linestyle="dotted",
+        linewidth=0.5,
+    )
+    ax.plot(
+        [second_column_start, second_column_start],
+        [weaklayer_thickness, y_max],
+        color="grey",
+        linestyle="dotted",
+        linewidth=0.5,
+    )
+    ax.plot(
+        [third_column_start, third_column_start],
+        [weaklayer_thickness, y_max],
+        color="grey",
+        linestyle="dotted",
+        linewidth=0.5,
+    )
+    ax.plot(
+        [0, third_column_end],
+        [column_header, column_header],
+        color="grey",
+        linestyle="dotted",
+        linewidth=0.5,
+    )
+    ax.text(
+        first_column_start / 2,
+        (y_max + column_header) / 2,
+        "H (cm)",
+        ha="center",
+        va="center",
+        color="black",
+        fontsize=9,
+    )
+    ax.text(
+        first_column_midpoint,
+        (y_max + column_header) / 2,
+        "Density (kg/m³)",
+        ha="center",
+        va="center",
+        color="black",
+        fontsize=9,
+    )
+    ax.text(
+        second_column_midpoint,
+        (y_max + column_header) / 2,
+        "GF",
+        ha="center",
+        va="center",
+        color="black",
+        fontsize=9,
+    )
+    ax.text(
+        third_column_midpoint,
+        (y_max + column_header) / 2,
+        "R",
+        ha="center",
+        va="center",
+        color="black",
+        fontsize=9,
+    )
 
-@app.cell
-def __(b_update_table_plot):
-    # Only possible to remove one layer at a time, after which update table and plot must be pressed
-    b_update_table_plot
-    return
-
-
-@app.cell
-def __(
-    b_addlayer,
-    b_update_table_plot,
-    grain_list,
-    layers,
-    plot,
-    run,
-    wl_thickness,
-):
-    if run or b_addlayer or b_update_table_plot:
-        fig_2, ax_2 = plot.snow_stratification(wl_thickness.value, layers, grain_list)
-    return ax_2, fig_2
-
-
-@app.cell
-def __(fig_2):
-    fig_2
-    return
-
-
-@app.cell
-def __(grain_list, grainform_df, layers):
-    def add_layer(_num_layer_thickness, _drop_grainform, _num_hardness):
-        global grain_list
-        global layers
-
-        _grainform_row = grainform_df.loc[
-            grainform_df["abbreviation"] == _drop_grainform
-        ]
-        _a = _grainform_row["a"].values[0]
-        _b = _grainform_row["b"].values[0]
-        if _drop_grainform == "RG":  # exponential case for Rounded grains
-            _density = _a + _b * (_num_hardness**3.15)
-        else:
-            _density = _a + _b * _num_hardness
-
-        layers.append([_density, _num_layer_thickness, _num_hardness])
-        grain_list.append(_drop_grainform)
-    return add_layer,
-
-
-@app.cell
-def __(grain_list, layers):
-    def reset_all_layers():
-        global grain_list
-        global layers
-
-        layers.clear()
-        grain_list.clear()
-    return reset_all_layers,
-
-
-@app.cell
-def __(layers):
-    def update_thickness(index, new_thickness):
-        global layers
-
-        layers[index][1] = new_thickness
-    return update_thickness,
-
-
-@app.cell
-def __(drop_grainform, grain_list, grainform_df, layers):
-    def update_grainform(index, new_grainform):
-        global grain_list
-        global layers
-
-        current_hardness = layers[index][2] 
-
-        grainform_row = grainform_df.loc[
-            grainform_df["abbreviation"] == new_grainform
-        ]
-        _a = grainform_row["a"].values[0]
-        _b = grainform_row["b"].values[0]
-        if drop_grainform.value == "RG":  # exponential case for Rounded grains
-            _density = _a + _b * (current_hardness**3.15)
-        else:
-            _density = _a + _b * current_hardness
-
-        grain_list[index] = new_grainform
-        layers[index][0] = _density
-    return update_grainform,
-
-
-@app.cell
-def __(drop_grainform, grain_list, grainform_df, layers):
-    def update_hand_hardness(index, new_hardness):
-        global layers
-        global grain_list
-
-        current_grainform = grain_list[index]
-
-        grainform_row = grainform_df.loc[
-            grainform_df["abbreviation"] == current_grainform
-        ]
-        _a = grainform_row["a"].values[0]
-        _b = grainform_row["b"].values[0]
-        if drop_grainform.value == "RG":  # exponential case for Rounded grains
-            _density = _a + _b * (new_hardness**3.15)
-        else:
-            _density = _a + _b * new_hardness
-
-        layers[index][2] = new_hardness
-        layers[index][0] = _density
-    return update_hand_hardness,
+    ax.set_title("Snow Stratification", fontsize=14)
+    return fig
 
 
-@app.cell
-def __(grain_list, layers):
-    def deleting_layers(index):
-        global layers
-        global grain_list
-
-        layers.pop(index)
-        grain_list.pop(index)
-    return deleting_layers,
-
-
-if __name__ == "__main__":
-    app.run()
+# Plot snow stratification
+if len(st.session_state.layers) > 0:
+    fig2 = snow_stratification(
+        wl_thickness, st.session_state.layers, st.session_state.grain_list
+    )
+    st.pyplot(fig2)
+else:
+    st.write("No layers to display.")
