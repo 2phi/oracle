@@ -335,10 +335,10 @@ def snow_profile(weaklayer_thickness, layers, grain_list):
 
     # Define positions for annotations (table columns)
     x_pos = {
-        'col1_start': 0.16 * x_max,
-        'col2_start': 0.44 * x_max,
-        'col3_start': 0.56 * x_max,
-        'col3_end': 0.64 * x_max,
+        'col1_start': 0.11 * x_max,
+        'col2_start': 0.3 * x_max,
+        'col3_start': 0.4 * x_max,
+        'col3_end': 0.49 * x_max,
     }
 
     # Compute midpoints for annotation placement
