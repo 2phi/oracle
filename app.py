@@ -72,17 +72,6 @@ def initialize_session_state():
 def display_layer_headers():
     """Displays the headers for the layer table."""
     st.markdown('#### Layers')
-    col1, col2, col3, col4 = st.columns(
-        [3.5, 3.5, 3.5, 1], vertical_alignment='bottom'
-    )
-    with col1:
-        st.markdown('Layer thickness (mm)')
-    with col2:
-        st.markdown('Grain form')
-    with col3:
-        st.markdown('Hand hardness')
-    with col4:
-        st.markdown('Delete')
 
 
 def handle_layer_buttons():
@@ -144,6 +133,14 @@ def render_layer_table(grain_options, hardness_options, placeholder):
             col1, col2, col3, col4 = st.columns(
                 [3.5, 3.5, 3.5, 1], vertical_alignment='bottom'
             )
+            with col1:
+                st.markdown('Layer thickness (mm)')
+            with col2:
+                st.markdown('Grain form')
+            with col3:
+                st.markdown('Hand hardness')
+            with col4:
+                st.markdown('Delete')
 
             # Display each layer
             for layer in reversed(st.session_state.layers):
