@@ -130,7 +130,7 @@ def render_layer_table(grain_options, hardness_options, placeholder):
     """Renders the layer table with interactive widgets."""
     with placeholder.container():
         if len(st.session_state.layers) > 0:
-            
+
             col0, col1, col2, col3, col4 = st.columns(
                 [1.5, 4, 3, 3, 1.4], vertical_alignment='center'
             )
@@ -144,7 +144,7 @@ def render_layer_table(grain_options, hardness_options, placeholder):
                 st.markdown('Hand hardness')
             with col4:
                 st.markdown('Delete')
-            
+
             # Display each layer
             for i, layer in enumerate(reversed(st.session_state.layers)):
                 layer_id = layer['id']
@@ -263,7 +263,11 @@ def display_plot():
     grains = [layer['grain'] for layer in st.session_state.layers]
 
     fig = plot.snow_profile(weak_layer_thickness, layers_data, grains)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+        config={'displayModeBar': False, 'scrollZoom': False},
+    )
 
 
 def display_todo_list():
