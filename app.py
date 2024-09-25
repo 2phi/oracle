@@ -158,6 +158,7 @@ def render_layer_table(grain_options, hardness_options, placeholder):
                         st.number_input(
                             f"Thickness (mm) of layer {layer_id}",
                             label_visibility='collapsed',
+                            format='%d',
                             min_value=1,
                             max_value=1000,
                             value=int(layer['thickness']),
