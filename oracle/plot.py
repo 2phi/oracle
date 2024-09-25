@@ -241,301 +241,331 @@ def distribution(
 
 
 def snow_profile(weaklayer_thickness, layers, grain_list):
+    """
+    Generates a snow stratification profile plot using Plotly.
 
-    medium_blue = "rgba(115, 170, 220, .4)"
-    dark_blue = "rgba(8, 48, 107, 1.0)"
+    Parameters:
+    - weaklayer_thickness (float): Thickness of the weak layer in the snowpack.
+    - layers (list of tuples): Each tuple contains (density, thickness, hand_hardness) of a layer.
+    - grain_list (list): List of grain forms corresponding to each layer.
 
+    Returns:
+    - fig (go.Figure): A Plotly figure object representing the snow profile.
+    """
+
+    # Define colors
+    COLORS = {
+        'slab_fill': "#D1E2F2",
+        'slab_line': "#3C658B",
+        'weak_layer_fill': "#FFCDD2",
+        'weak_layer_line': "#E57373",
+        'weak_layer_text': "#C62828",
+        'substratum_fill': "#CFD8DC",
+        'substratum_line': "#607D8B",
+        'substratum_text': "#607D8B",
+    }
+
+    # Compute total height and set y-axis maximum
     total_height = weaklayer_thickness + sum(
         thickness for _, thickness, _ in layers
     )
-    y_max = max(total_height, 500) * 1.15
-    substratum_thickness = 40
-    substratum_bottom = -substratum_thickness
-    substratum_top = 0
-    # x_max = 550  # Maximum density value for x-axis
-    x_max = 1.1*max(x[0] for x in layers) if layers else 400
-    x_max = max(400, x_max)
-    
+    y_max = max(total_height * 1.1, 450)  # Ensure y_max is at least 500
 
-    # Initialize figure
+    # Define substratum properties
+    substratum_thickness = 30
+
+    # Compute x-axis maximum based on layer densities
+    max_density = max((density for density, _, _ in layers), default=400)
+    x_max = max(1.1 * max_density, 400)  # Ensure x_max is at least 400
+
+    # Initialize the Plotly figure
     fig = go.Figure()
 
-    # Plot the substratum (background layer)
+    # Plot the substratum (base layer)
     fig.add_shape(
         type="rect",
         x0=-x_max,
         x1=0,
-        y0=substratum_bottom,
-        y1=substratum_top,
-        fillcolor="rgba(8, 48, 107, .9)",
-        line=dict(width=0, color="rgba(8, 48, 107, .9)"),
-        # layer='below',  # Ensure it's in the background
+        y0=-substratum_thickness,
+        y1=0,
+        fillcolor=COLORS['substratum_fill'],
+        line=dict(width=1, color=COLORS['substratum_line']),
     )
 
-    # Add substratum text
+    # Add substratum label
     fig.add_annotation(
         x=-x_max / 2,
-        y=(substratum_bottom + substratum_top) / 2,
+        y=-substratum_thickness / 2,
         text="substratum",
         showarrow=False,
-        font=dict(color='white', size=10),
+        font=dict(color=COLORS['substratum_text'], size=10),
         xanchor='center',
         yanchor='middle',
     )
 
-    # Plot the weak layer
-    if len(layers) > 0:
-        weak_density = layers[0][0] / 2
-    else:
-        weak_density = x_max
+    # Determine weak layer density
+    weak_density = 100
 
-    # Plot weak layer from x=-weak_density to x=0
+    # Plot the weak layer
     fig.add_shape(
         type="rect",
-        x0=-weak_density,  # Negative x-values
+        x0=-weak_density,
         x1=0,
         y0=0,
         y1=weaklayer_thickness,
-        fillcolor="rgba(255, 127, 80, .7)",
-        line=dict(width=1, color="rgba(255, 127, 80, 1)"),
-        layer='below',  # Ensure it's above gridlines
+        fillcolor=COLORS['weak_layer_fill'],
+        line=dict(width=1, color=COLORS['weak_layer_line']),
+        layer='below',
     )
 
-    # Add weak layer text
+    # Add weak layer label
     fig.add_annotation(
-        x=-(weak_density if len(layers) > 0 else x_max / 2),
+        x=-weak_density / 2,
         y=weaklayer_thickness / 2,
-        text=" weak layer",
+        text="weak layer",
         showarrow=False,
-        font=dict(color='white', size=10),
-        xanchor='left',
+        font=dict(color=COLORS['weak_layer_text'], size=10),
+        xanchor='center',
         yanchor='middle',
     )
 
-    # Initialize variables for layers
+    # Initialize variables for plotting layers
     current_height = weaklayer_thickness
     previous_density = 0  # Start from zero density
 
-    # Positions for annotations (positive x-values for table area)
-    first_column_start = (0.8 * 0.2) * x_max
-    second_column_start = (2.2 * 0.2) * x_max
-    third_column_start = (2.8 * 0.2) * x_max
-    third_column_end = (3.2 * 0.2) * x_max
+    # Define positions for annotations (table columns)
+    x_pos = {
+        'col1_start': 0.16 * x_max,
+        'col2_start': 0.44 * x_max,
+        'col3_start': 0.56 * x_max,
+        'col3_end': 0.64 * x_max,
+    }
 
-    first_column_midpoint = (first_column_start + second_column_start) / 2
-    second_column_midpoint = (second_column_start + third_column_start) / 2
-    third_column_midpoint = (third_column_start + third_column_end) / 2
+    # Compute midpoints for annotation placement
+    first_column_mid = (x_pos['col1_start'] + x_pos['col2_start']) / 2
+    second_column_mid = (x_pos['col2_start'] + x_pos['col3_start']) / 2
+    third_column_mid = (x_pos['col3_start'] + x_pos['col3_end']) / 2
 
-    column_header = y_max / 1.1
-    avg_height = (column_header - weaklayer_thickness) / max(1, len(layers))
-    current_table = weaklayer_thickness
+    # Set the position for the table header
+    column_header_y = y_max / 1.1
+    max_table_row_height = 85  # Maximum height for table rows
 
-    # Loop through each layer
-    for i, ((density, thickness, hand_hardness), grain) in enumerate(
-        zip(layers, grain_list)
-    ):
+    # Calculate average height per table row
+    num_layers = max(len(layers), 1)
+    avg_row_height = (column_header_y - weaklayer_thickness) / num_layers
+    avg_row_height = min(avg_row_height, max_table_row_height)
+
+    # Initialize current table height
+    current_table_y = weaklayer_thickness
+
+    # Loop through each layer and plot
+    for (density, thickness, hand_hardness), grain in zip(layers, grain_list):
+        # Define layer boundaries
         layer_bottom = current_height
         layer_top = current_height + thickness
-        table_bottom = current_table
-        table_top = current_table +  min(avg_height, 85)
-        # table_top = current_table + min(current_height
 
-        # Plot the layer from x=-density to x=0
+        # Plot the layer
         fig.add_shape(
             type="rect",
             x0=-density,
             x1=0,
-            y0=layer_bottom + 1,
+            y0=layer_bottom,
             y1=layer_top,
-            fillcolor=medium_blue,
-            line=dict(width=0.4, color=medium_blue),
-            layer='above',  # Ensure bars are above gridlines
+            fillcolor=COLORS['slab_fill'],
+            line=dict(width=0.4, color=COLORS['slab_fill']),
+            layer='above',
         )
 
-        # Line from previous_density to current density at layer_bottom
+        # Plot lines connecting previous and current densities
         fig.add_shape(
             type="line",
             x0=-previous_density,
             y0=layer_bottom,
             x1=-density,
             y1=layer_bottom,
-            line=dict(color=dark_blue, width=1.2),
+            line=dict(color=COLORS['slab_line'], width=1.2),
         )
-
-        # Vertical line at current density
         fig.add_shape(
             type="line",
             x0=-density,
-            y0=layer_bottom + 1,
+            y0=layer_bottom,
             x1=-density,
             y1=layer_top,
-            line=dict(color=dark_blue, width=1.2),
+            line=dict(color=COLORS['slab_line'], width=1.2),
         )
 
-        # Horizontal line at layer_bottom (height markers on the left)
+        # Add height markers on the left
         fig.add_shape(
             type="line",
             x0=0,
             y0=layer_bottom,
             x1=10,
             y1=layer_bottom,
-            line=dict(color="black", width=0.5),
+            line=dict(width=0.5),
         )
-
-        # Text for height at layer_bottom
         fig.add_annotation(
             x=12,
             y=layer_bottom,
             text=str(round(layer_bottom / 10)),
             showarrow=False,
-            font=dict(color='black', size=10),
+            font=dict(size=10),
             xanchor='left',
             yanchor='middle',
+            bgcolor='white',
         )
 
-        # Line across the table columns
+        # Define table row boundaries
+        table_bottom = current_table_y
+        table_top = current_table_y + avg_row_height
+
+        # Add table grid lines
         fig.add_shape(
             type="line",
-            x0=first_column_start,
+            x0=x_pos['col1_start'],
             y0=table_bottom,
-            x1=third_column_end,
+            x1=x_pos['col3_end'],
             y1=table_bottom,
             line=dict(color="lightgrey", width=0.5),
         )
 
-        # Annotations for density, grain form, and hardness
+        # Add annotations for density, grain form, and hand hardness
         fig.add_annotation(
-            x=first_column_midpoint,
+            x=first_column_mid,
             y=(table_bottom + table_top) / 2,
             text=str(round(density)),
             showarrow=False,
-            font=dict(color='black', size=10),
+            font=dict(size=10),
             xanchor='center',
             yanchor='middle',
         )
-
         fig.add_annotation(
-            x=second_column_midpoint,
+            x=second_column_mid,
             y=(table_bottom + table_top) / 2,
             text=grain,
             showarrow=False,
-            font=dict(color='black', size=10),
+            font=dict(size=10),
             xanchor='center',
             yanchor='middle',
         )
-
         fig.add_annotation(
-            x=third_column_midpoint,
+            x=third_column_mid,
             y=(table_bottom + table_top) / 2,
             text=hand_hardness,
             showarrow=False,
-            font=dict(color='black', size=10),
+            font=dict(size=10),
             xanchor='center',
             yanchor='middle',
         )
 
-        # Dotted lines from layer edges to table
+        # Lines from layer edges to table
         fig.add_shape(
             type="line",
             x0=0,
             y0=layer_bottom,
-            x1=first_column_start,
+            x1=x_pos['col1_start'],
             y1=table_bottom,
-            line=dict(color="lightgrey", width=0.25),
+            line=dict(color="lightgrey", width=0.5),
         )
-        # fig.add_shape(
-        #     type="line",
-        #     x0=0,
-        #     y0=layer_top,
-        #     x1=first_column_start,
-        #     y1=table_top,
-        #     line=dict(color="lightgrey", width=0.25),
-        # )
 
+        # Update variables for next iteration
         previous_density = density
         current_height = layer_top
-        current_table = table_top
+        current_table_y = table_top
 
-    # Top layer horizontal line and height annotation
+    # Add top layer height marker
     fig.add_shape(
         type="line",
         x0=0,
         y0=total_height,
         x1=10,
         y1=total_height,
-        line=dict(color="black", width=0.5),
+        line=dict(width=0.5),
     )
     fig.add_annotation(
         x=12,
         y=total_height,
         text=str(round(total_height / 10)),
         showarrow=False,
-        font=dict(color='black', size=10),
+        font=dict(size=10),
         xanchor='left',
         yanchor='middle',
     )
 
-    # Line from previous_density to x=0 at total_height
+    # Final line connecting last density to x=0 at total_height
     fig.add_shape(
         type="line",
         x0=-previous_density,
         y0=total_height,
         x1=0,
         y1=total_height,
-        line=dict(color=dark_blue, width=1),
+        line=dict(color=COLORS['slab_line'], width=1),
     )
 
     # Set axes properties
     fig.update_layout(
-        yaxis=dict(range=[substratum_bottom, y_max]),
+        yaxis=dict(range=[-1.05 * substratum_thickness, y_max]),
         xaxis=dict(
-            range=[-x_max - 50, third_column_end + 50], autorange=False
+            range=[-1.05 * x_max, x_pos['col3_end']],
+            autorange=False,
         ),
-        plot_bgcolor='white',
-        # width=np.maxinf,
-        height=max(600, .7*y_max),
-        # title=dict(text="Snow Stratification", x=0.5, xanchor='center'),
+        height=max(500, 0.75* y_max),
     )
 
-    # Adjust x and y axis titles
-    fig.update_xaxes(title_text="Density (kg/m³)", side='top')
-    fig.update_yaxes(title_text="Height (cm)")
-
-    # Adjust y-axis ticks
-    y_grid = np.arange(0, column_header + 200, 200)
-    fig.update_yaxes(
-        tickvals=y_grid,
-        ticktext=[str(int(pos // 10)) for pos in y_grid],
-        ticks="outside",
-        tickwidth=1,
-        tickcolor='black',
-        ticklen=5,
-    )
-
-    # Add horizontal grid lines only in the table area (from x=0 to x=third_column_end)
+    # Add horizontal grid lines
+    y_tick_spacing = 100 if total_height < 800 else 200
+    y_grid = np.arange(0, column_header_y + y_tick_spacing, y_tick_spacing)
     for y in y_grid:
         fig.add_shape(
             type="line",
             x0=0,
             y0=y,
-            x1=-10*x_max,  # make sure the line is long enough
+            x1=-x_max,  # Extend grid line to the left
             y1=y,
             line=dict(color='lightgrey', width=0.5),
-            layer='below',  # Ensure grid lines are behind elements
+            layer='below',
         )
+
+    # Adjust axes labels and ticks
+    fig.update_xaxes(
+        tickvals=[],  # np.arange(-1000, 0, 100),
+        # ticks='inside',
+        # ticklabelposition='inside',
+        # title_text="Density (kg/m³)",
+        # side='top',
+        # showticklabels=True,
+        # linewidth=.5,
+        # mirror=True,
+        # linecolor='lightgray',
+    )
+
+    fig.update_yaxes(
+        zeroline=False,
+        tickvals=y_grid,
+        ticktext=[str(int(y // 10)) for y in y_grid],
+        title_text="Height (cm)",
+        showgrid=False,
+        # linewidth=.5,
+        # showline=True,
+        # mirror=True,
+        # linecolor='lightgray',
+    )
 
     # Vertical line at x=0 (y-axis)
     fig.add_shape(
         type="line",
         x0=0,
-        y0=substratum_bottom,
+        y0=-substratum_thickness,
         x1=0,
         y1=y_max,
-        line=dict(color='black', width=1),
+        line=dict(width=1),
     )
 
-    # Vertical dotted lines for table columns (positive x-values)
-    for x in [first_column_start, second_column_start, third_column_start]:
+    # Vertical lines for table columns
+    for x in [
+        x_pos['col1_start'],
+        x_pos['col2_start'],
+        x_pos['col3_start'],
+    ]:
         fig.add_shape(
             type="line",
             x0=x,
@@ -545,71 +575,56 @@ def snow_profile(weaklayer_thickness, layers, grain_list):
             line=dict(color="lightgrey", width=0.5),
         )
 
-    # Horizontal line at column header
+    # Horizontal line at table header
     fig.add_shape(
         type="line",
         x0=0,
-        y0=column_header,
-        x1=third_column_end,
-        y1=column_header,
+        y0=column_header_y,
+        x1=x_pos['col3_end'],
+        y1=column_header_y,
         line=dict(color='lightgrey', width=0.5),
     )
 
     # Annotations for table headers
+    header_y_position = (y_max + column_header_y) / 2
     fig.add_annotation(
-        x=(0 + first_column_start) / 2,
-        y=(y_max + column_header) / 2,
+        x=(0 + x_pos['col1_start']) / 2,
+        y=header_y_position,
         text="H (cm)",
         showarrow=False,
-        font=dict(color='black', size=10),
+        font=dict(size=10),
         xanchor='center',
         yanchor='middle',
     )
-
     fig.add_annotation(
-        x=first_column_midpoint,
-        y=(y_max + column_header) / 2,
+        x=first_column_mid,
+        y=header_y_position,
         text="Density (kg/m³)",
         showarrow=False,
-        font=dict(color='black', size=10),
+        font=dict(size=10),
         xanchor='center',
         yanchor='middle',
     )
-
     fig.add_annotation(
-        x=second_column_midpoint,
-        y=(y_max + column_header) / 2,
+        x=second_column_mid,
+        y=header_y_position,
         text="GF",
         showarrow=False,
-        font=dict(color='black', size=10),
+        font=dict(size=10),
         xanchor='center',
         yanchor='middle',
     )
-
     fig.add_annotation(
-        x=third_column_midpoint,
-        y=(y_max + column_header) / 2,
+        x=third_column_mid,
+        y=header_y_position,
         text="R",
         showarrow=False,
-        font=dict(color='black', size=10),
+        font=dict(size=10),
         xanchor='center',
         yanchor='middle',
     )
 
-    # Hide x-axis ticks and labels
-    fig.update_xaxes(
-        showticklabels=False,
-        ticks='',
-    )
-    
-    # Remove default hlines
-    fig.update_yaxes(
-        showgrid=False,
-    )
-
-    # Adjust the plot margins
-    fig.update_layout(
-        # margin=dict(l=80, r=80, t=80, b=80)
-    )
+    # Adjust the plot margins (optional)
+    fig.update_layout(margin=dict(l=0, r=0, t=40, b=40))
 
     return fig
