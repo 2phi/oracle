@@ -266,7 +266,11 @@ def display_plot():
     st.plotly_chart(
         fig,
         use_container_width=True,
-        config={'displayModeBar': False, 'scrollZoom': False},
+        config={
+            'displayModeBar': False,
+            'scrollZoom': False,
+            'staticPlot': True,
+        },
     )
 
 
