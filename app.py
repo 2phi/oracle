@@ -72,17 +72,6 @@ def initialize_session_state():
 def display_layer_headers():
     """Displays the headers for the layer table."""
     st.markdown('#### Layers')
-    col1, col2, col3, col4 = st.columns(
-        [3.5, 3.5, 3.5, 1], vertical_alignment='bottom'
-    )
-    with col1:
-        st.markdown('Layer thickness (mm)')
-    with col2:
-        st.markdown('Grain form')
-    with col3:
-        st.markdown('Hand hardness')
-    with col4:
-        st.markdown('Delete')
 
 
 def handle_layer_buttons():
@@ -141,53 +130,70 @@ def render_layer_table(grain_options, hardness_options, placeholder):
     """Renders the layer table with interactive widgets."""
     with placeholder.container():
         if len(st.session_state.layers) > 0:
-            col1, col2, col3, col4 = st.columns(
-                [3.5, 3.5, 3.5, 1], vertical_alignment='bottom'
+            
+            col0, col1, col2, col3, col4 = st.columns(
+                [1.5, 4, 3, 3, 1.4], vertical_alignment='center'
             )
-
+            with col0:
+                st.markdown('Order')
+            with col1:
+                st.markdown('Layer thickness (mm)')
+            with col2:
+                st.markdown('Grain form')
+            with col3:
+                st.markdown('Hand hardness')
+            with col4:
+                st.markdown('Delete')
+            
             # Display each layer
-            for layer in reversed(st.session_state.layers):
+            for i, layer in enumerate(reversed(st.session_state.layers)):
                 layer_id = layer['id']
-                with col1:
-                    st.number_input(
-                        f"Thickness (mm) of layer {layer_id}",
-                        label_visibility='collapsed',
-                        min_value=1,
-                        max_value=1000,
-                        value=int(layer['thickness']),
-                        step=10,
-                        key=f"thickness_{layer_id}",
-                        on_change=update_thickness,
-                        args=(layer_id,),
+                with st.container():
+                    col0, col1, col2, col3, col4 = st.columns(
+                        [1.5, 4, 3, 3, 1.4], vertical_alignment='center'
                     )
-                with col2:
-                    st.selectbox(
-                        f"Grain form of layer {layer_id}",
-                        label_visibility='collapsed',
-                        options=grain_options,
-                        index=grain_options.index(layer['grain']),
-                        key=f"grainform_{layer_id}",
-                        on_change=update_grainform,
-                        args=(layer_id,),
-                    )
-                with col3:
-                    st.selectbox(
-                        f"Hand hardness of layer {layer_id}",
-                        label_visibility='collapsed',
-                        options=hardness_options,
-                        index=hardness_options.index(layer['hardness']),
-                        key=f"hardness_{layer_id}",
-                        on_change=update_hardness,
-                        args=(layer_id,),
-                    )
-                with col4:
-                    st.button(
-                        "🗑️",
-                        key=f"remove_{layer_id}",
-                        use_container_width=True,
-                        on_click=remove_layer,
-                        args=(layer_id,),
-                    )
+                    with col0:
+                        st.markdown(f"Layer {layer_id + 1}")
+                    with col1:
+                        st.number_input(
+                            f"Thickness (mm) of layer {layer_id}",
+                            label_visibility='collapsed',
+                            min_value=1,
+                            max_value=1000,
+                            value=int(layer['thickness']),
+                            step=10,
+                            key=f"thickness_{layer_id}",
+                            on_change=update_thickness,
+                            args=(layer_id,),
+                        )
+                    with col2:
+                        st.selectbox(
+                            f"Grain form of layer {layer_id}",
+                            label_visibility='collapsed',
+                            options=grain_options,
+                            index=grain_options.index(layer['grain']),
+                            key=f"grainform_{layer_id}",
+                            on_change=update_grainform,
+                            args=(layer_id,),
+                        )
+                    with col3:
+                        st.selectbox(
+                            f"Hand hardness of layer {layer_id}",
+                            label_visibility='collapsed',
+                            options=hardness_options,
+                            index=hardness_options.index(layer['hardness']),
+                            key=f"hardness_{layer_id}",
+                            on_change=update_hardness,
+                            args=(layer_id,),
+                        )
+                    with col4:
+                        st.button(
+                            "🗑️",
+                            key=f"remove_{layer_id}",
+                            use_container_width=True,
+                            on_click=remove_layer,
+                            args=(layer_id,),
+                        )
         else:
             st.write("_Please add a first layer to be displayed here..._")
 
@@ -255,14 +261,12 @@ def display_plot():
     ]
     grains = [layer['grain'] for layer in st.session_state.layers]
 
-    fig = plot.snow_profile(
-        weak_layer_thickness, layers_data, grains
-    )
+    fig = plot.snow_profile(weak_layer_thickness, layers_data, grains)
     st.plotly_chart(fig, use_container_width=True)
 
 
 def display_todo_list():
-    """Displays the TODO list."""    
+    """Displays the TODO list."""
     st.markdown("#### tudu")
     st.checkbox("User input: inclination")
     st.checkbox("User input: cutting direction")
@@ -271,9 +275,6 @@ def display_todo_list():
     st.checkbox("User input: cut length")
     st.checkbox("Run WEAC to compute ERR")
 
-    
-
 
 if __name__ == "__main__":
     main()
-    
