@@ -1,10 +1,8 @@
+# Third-party imports
 import streamlit as st
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import plotly.graph_objects as go
 
-from oracle.config import DENSITY_PARAMETERS
+# Local imports
+from oracle.config import DENSITY_PARAMETERS, HAND_HARDNESS
 from oracle import plot
 
 # Set page configuration
@@ -25,101 +23,156 @@ st.html(
 if "layers" not in st.session_state:
     st.session_state.layers = []
 
-if "grain_list" not in st.session_state:
-    st.session_state.grain_list = []
+if "layer_id_counter" not in st.session_state:
+    st.session_state.layer_id_counter = 0
 
-
-# Functions to modify session state
-def add_layer():
-    num_layer_thickness = st.session_state["layer_thickness"]
-    drop_grainform = st.session_state["grainform"]
-    num_hardness = st.session_state["hand_hardness"]
-
-    a, b = DENSITY_PARAMETERS[drop_grainform]
-
-    if drop_grainform == "RG":
-        density = a + b * (num_hardness**3.15)
+# Functions to compute density
+def compute_density(grainform, hardness):
+    a, b = DENSITY_PARAMETERS[grainform]
+    hardness = HAND_HARDNESS[hardness]
+    if grainform == "RG":
+        return a + b * (hardness ** 3.15)
     else:
-        density = a + b * num_hardness
+        return a + b * hardness
 
-    st.session_state.layers.append(
-        [density, num_layer_thickness, num_hardness]
-    )
-    st.session_state.grain_list.append(drop_grainform)
+grain_options = list(DENSITY_PARAMETERS.keys())
+hardness_options = list(HAND_HARDNESS.keys())[1:]
 
-
-def reset_all_layers():
-    st.session_state.layers = []
-    st.session_state.grain_list = []
-
-
-def update_thickness(index, new_thickness):
-    st.session_state.layers[index][1] = new_thickness
-
-
-def update_grainform(index, new_grainform):
-    current_hardness = st.session_state.layers[index][2]
-    a, b = DENSITY_PARAMETERS[new_grainform]
-    if new_grainform == "RG":
-        density = a + b * (current_hardness**3.15)
-    else:
-        density = a + b * current_hardness
-
-    st.session_state.grain_list[index] = new_grainform
-    st.session_state.layers[index][0] = density
-
-
-def update_hand_hardness(index, new_hardness):
-    current_grainform = st.session_state.grain_list[index]
-    (
-        a,
-        b,
-    ) = DENSITY_PARAMETERS[current_grainform]
-    if current_grainform == "RG":
-        density = a + b * (new_hardness**3.15)
-    else:
-        density = a + b * new_hardness
-
-    st.session_state.layers[index][2] = new_hardness
-    st.session_state.layers[index][0] = density
-
-
-def delete_layer(index):
-    st.session_state.layers.pop(index)
-    st.session_state.grain_list.pop(index)
-    # No need for st.experimental_rerun()
-
-
-# UI for adding layers
 st.markdown('#### Layers')
-
-
-col1, col2, col3, col4 = st.columns(4, vertical_alignment='bottom')
-
+col1, col2, col3, col4 = st.columns([3.5, 3.5, 3.5, 1], vertical_alignment='bottom')
 with col1:
-    st.number_input(
-        "Layer thickness (mm)",
-        min_value=1,
-        max_value=1000,
-        value=100,
-        step=1,
-        key="layer_thickness",
-    )
+    st.markdown('Layer thickness (mm)')
 with col2:
-    grain_options = list(DENSITY_PARAMETERS.keys())
-    st.selectbox("Grain type", options=grain_options, index=1, key="grainform")
+    st.markdown('Grain form')
 with col3:
-    st.number_input(
-        "Hand hardness",
-        min_value=1,
-        max_value=5,
-        value=2,
-        step=1,
-        key="hand_hardness",
-    )
+    st.markdown('Hand hardness')
 with col4:
-    if st.button("Add", use_container_width=True):
-        add_layer()
+    st.markdown('Delete')
+
+# --- Create a placeholder for the layer table ---
+layer_table_placeholder = st.empty()
+
+# --- Place the buttons below the layer table ---
+add_col, reset_col = st.columns([0.8, 0.2])
+with add_col:
+    add_layer_clicked = st.button("Add layer", use_container_width=True, type='primary')
+with reset_col:
+    reset_layers_clicked = st.button("Reset all layers", use_container_width=True)
+
+# --- Handle button clicks before rendering the table ---
+if reset_layers_clicked:
+    st.session_state.layers = []
+    st.session_state.layer_id_counter = 0
+
+if add_layer_clicked:
+    num_layer_thickness = 100  # Default thickness in mm
+    drop_grainform = 'RG'      # Default grain form
+    num_hardness = '4F'        # Default hand hardness
+
+    density = compute_density(drop_grainform, num_hardness)
+
+    layer_id = st.session_state.layer_id_counter
+    st.session_state.layer_id_counter += 1
+
+    layer = {
+        'id': layer_id,
+        'density': density,
+        'thickness': num_layer_thickness,
+        'hardness': num_hardness,
+        'grain': drop_grainform,
+    }
+
+    st.session_state.layers.insert(0, layer)
+
+
+# --- Render the layer table in the placeholder ---
+# Define a function to remove a layer
+def remove_layer(layer_id):
+    st.session_state['layer_to_remove'] = layer_id
+    
+# Define functions to update layer properties
+def update_thickness(layer_id):
+    # Find the layer with the given layer_id and update its thickness
+    for layer in st.session_state.layers:
+        if layer['id'] == layer_id:
+            layer['thickness'] = st.session_state[f"thickness_{layer_id}"]
+            break
+
+def update_grainform(layer_id):
+    # Find the layer with the given layer_id and update its grain form and density
+    for layer in st.session_state.layers:
+        if layer['id'] == layer_id:
+            layer['grain'] = st.session_state[f"grainform_{layer_id}"]
+            layer['density'] = compute_density(layer['grain'], layer['hardness'])
+            break
+
+def update_hardness(layer_id):
+    # Find the layer with the given layer_id and update its hardness and density
+    for layer in st.session_state.layers:
+        if layer['id'] == layer_id:
+            layer['hardness'] = st.session_state[f"hardness_{layer_id}"]
+            layer['density'] = compute_density(layer['grain'], layer['hardness'])
+            break
+
+# Initialize the 'layer_to_remove' in session_state if not already set
+if 'layer_to_remove' not in st.session_state:
+    st.session_state['layer_to_remove'] = None
+
+# Check if a layer needs to be removed and update the session state
+if st.session_state['layer_to_remove'] is not None:
+    layer_id_to_remove = st.session_state['layer_to_remove']
+    st.session_state.layers = [l for l in st.session_state.layers if l['id'] != layer_id_to_remove]
+    st.session_state['layer_to_remove'] = None  # Reset after removing
+
+with layer_table_placeholder.container():
+    if len(st.session_state.layers) > 0:
+        col1, col2, col3, col4 = st.columns([3.5, 3.5, 3.5, 1], vertical_alignment='bottom')
+        
+        # Display layers
+        for layer in reversed(st.session_state.layers):
+            layer_id = layer['id']
+            with col1:
+                st.number_input(
+                    f"Thickness (mm) of layer {layer_id}",
+                    label_visibility='collapsed',
+                    min_value=1,
+                    max_value=1000,
+                    value=int(layer['thickness']),
+                    step=10,
+                    key=f"thickness_{layer_id}",
+                    on_change=update_thickness,
+                    args=(layer_id,),
+                )
+            with col2:
+                st.selectbox(
+                    f"Grain form of layer {layer_id}",
+                    label_visibility='collapsed',
+                    options=grain_options,
+                    index=grain_options.index(layer['grain']),
+                    key=f"grainform_{layer_id}",
+                    on_change=update_grainform,
+                    args=(layer_id,),
+                )
+            with col3:
+                st.selectbox(
+                    f"Hand hardness of layer {layer_id}",
+                    label_visibility='collapsed',
+                    options=hardness_options,
+                    index=hardness_options.index(layer['hardness']),
+                    key=f"hardness_{layer_id}",
+                    on_change=update_hardness,
+                    args=(layer_id,),
+                )
+            with col4:
+                st.button(
+                    "🗑️",
+                    key=f"remove_{layer_id}",
+                    use_container_width=True,
+                    on_click=remove_layer,
+                    args=(layer_id,),
+                )
+
+# --- Continue with the rest of your app ---
 
 # Set weak-layer thickness
 wl_thickness = st.number_input(
@@ -130,97 +183,21 @@ wl_thickness = st.number_input(
     step=1,
 )
 
-st.markdown('---')
-
-# Display the table of layers
-if len(st.session_state.layers) > 0:
-    # st.markdown("#### Layers")
-    col1, col2, col3, col4 = st.columns(
-        [3.5, 3.5, 3.5, 1], vertical_alignment='bottom'
-    )
-    with col1:
-        st.markdown('Layer thickness (mm)')
-    with col2:
-        st.markdown('Grain form')
-    with col3:
-        st.markdown('Hand hardness')
-    with col4:
-        st.markdown('Delete')
-    for i, (layer, grain) in reversed(
-        list(
-            enumerate(
-                zip(st.session_state.layers, st.session_state.grain_list)
-            )
-        )
-    ):
-        with col1:
-            new_thickness = st.number_input(
-                f"Thickness (mm) for layer {i+1}",
-                label_visibility='collapsed',
-                min_value=1,
-                max_value=1000,
-                value=int(layer[1]),
-                step=1,
-                key=f"thickness_{i}",
-            )
-            if new_thickness != layer[1]:
-                update_thickness(i, new_thickness)
-        with col2:
-            new_grainform = st.selectbox(
-                f"Grain form for layer {i+1}",
-                label_visibility='collapsed',
-                options=grain_options,
-                index=grain_options.index(grain),
-                key=f"grainform_{i}",
-            )
-            if new_grainform != grain:
-                update_grainform(i, new_grainform)
-        with col3:
-            new_hardness = st.number_input(
-                f"Hand hardness for layer {i+1}",
-                label_visibility='collapsed',
-                min_value=1,
-                max_value=5,
-                value=int(layer[2]),
-                step=1,
-                key=f"hardness_{i}",
-            )
-            if new_hardness != layer[2]:
-                update_hand_hardness(i, new_hardness)
-        with col4:
-            if st.button("🗑️", key=f"remove_{i}", use_container_width=True):
-                delete_layer(i)
-
-# _, col1 = st.columns([.7, .3])
-# with col1:
-if st.button("Reset all layers", use_container_width=True):
-    reset_all_layers()
-
-
-
 # Plot snow stratification using Plotly
-# if len(st.session_state.layers) > 0:
-fig = plot.snow_stratification_plotly(
-    wl_thickness, st.session_state.layers, st.session_state.grain_list
-)
-st.plotly_chart(fig, use_container_width=True)
-# else:
-#     st.write("No layers to display.")
-
-
-# Plot snow stratification
 if len(st.session_state.layers) > 0:
-    fig2 = plot.snow_stratification(
-        wl_thickness, st.session_state.layers, st.session_state.grain_list
+    fig = plot.snow_stratification_plotly(
+        wl_thickness,
+        [(layer['density'], layer['thickness'], layer['hardness']) for layer in st.session_state.layers],
+        [layer['grain'] for layer in st.session_state.layers],
     )
-    st.pyplot(fig2)
+    st.plotly_chart(fig, use_container_width=True)
 else:
     st.write("No layers to display.")
 
 # Display the TODO list (Optional)
-st.html(
+st.markdown(
     """
-    <h2 style= >⏳ tudu</h2>
+    <h2>⏳ TODO</h2>
     <ul style="list-style-type: none;">
       <li><input type="checkbox"> User input: inclination</li>
       <li><input type="checkbox"> User input: cutting direction</li>
@@ -229,5 +206,6 @@ st.html(
       <li><input type="checkbox"> User input: cut length</li>
       <li><input type="checkbox"> Run WEAC to compute ERR</li>
     </ul>
-    """
+    """,
+    unsafe_allow_html=True,
 )

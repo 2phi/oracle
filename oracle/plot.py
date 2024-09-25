@@ -556,7 +556,6 @@ def snow_stratification_plotly(weaklayer_thickness, layers, grain_list):
     medium_blue = "rgba(115, 170, 220, .4)"
     dark_blue = "rgba(8, 48, 107, 1.0)"
 
-    hardness_mapping = {1: "F", 2: "4F", 3: "1F", 4: "P", 5: "K"}
     total_height = weaklayer_thickness + sum(
         thickness for _, thickness, _ in layers
     )
@@ -564,7 +563,10 @@ def snow_stratification_plotly(weaklayer_thickness, layers, grain_list):
     substratum_thickness = 40
     substratum_bottom = -substratum_thickness
     substratum_top = 0
-    x_max = 550  # Maximum density value for x-axis
+    # x_max = 550  # Maximum density value for x-axis
+    x_max = 1.1*max(x[0] for x in layers) if layers else 400
+    x_max = max(400, x_max)
+    
 
     # Initialize figure
     fig = go.Figure()
@@ -587,7 +589,7 @@ def snow_stratification_plotly(weaklayer_thickness, layers, grain_list):
         y=(substratum_bottom + substratum_top) / 2,
         text="substratum",
         showarrow=False,
-        font=dict(color='white', size=12),
+        font=dict(color='white', size=10),
         xanchor='center',
         yanchor='middle',
     )
@@ -616,7 +618,7 @@ def snow_stratification_plotly(weaklayer_thickness, layers, grain_list):
         y=weaklayer_thickness / 2,
         text=" weak layer",
         showarrow=False,
-        font=dict(color='white', size=12),
+        font=dict(color='white', size=10),
         xanchor='left',
         yanchor='middle',
     )
@@ -626,16 +628,16 @@ def snow_stratification_plotly(weaklayer_thickness, layers, grain_list):
     previous_density = 0  # Start from zero density
 
     # Positions for annotations (positive x-values for table area)
-    first_column_start = 0.8 * 100
-    second_column_start = 2.2 * 100
-    third_column_start = 2.8 * 100
-    third_column_end = 3.2 * 100
+    first_column_start = (0.8 * 0.2) * x_max
+    second_column_start = (2.2 * 0.2) * x_max
+    third_column_start = (2.8 * 0.2) * x_max
+    third_column_end = (3.2 * 0.2) * x_max
 
     first_column_midpoint = (first_column_start + second_column_start) / 2
     second_column_midpoint = (second_column_start + third_column_start) / 2
     third_column_midpoint = (third_column_start + third_column_end) / 2
 
-    column_header = y_max / 1.07
+    column_header = y_max / 1.1
     avg_height = (column_header - weaklayer_thickness) / max(1, len(layers))
     current_table = weaklayer_thickness
 
@@ -646,7 +648,8 @@ def snow_stratification_plotly(weaklayer_thickness, layers, grain_list):
         layer_bottom = current_height
         layer_top = current_height + thickness
         table_bottom = current_table
-        table_top = current_table + min(avg_height, 50)
+        table_top = current_table +  min(avg_height, 85)
+        # table_top = current_table + min(current_height
 
         # Plot the layer from x=-density to x=0
         fig.add_shape(
@@ -735,7 +738,7 @@ def snow_stratification_plotly(weaklayer_thickness, layers, grain_list):
         fig.add_annotation(
             x=third_column_midpoint,
             y=(table_bottom + table_top) / 2,
-            text=hardness_mapping.get(hand_hardness, "?"),
+            text=hand_hardness,
             showarrow=False,
             font=dict(color='black', size=10),
             xanchor='center',
@@ -751,14 +754,14 @@ def snow_stratification_plotly(weaklayer_thickness, layers, grain_list):
             y1=table_bottom,
             line=dict(color="lightgrey", width=0.25),
         )
-        fig.add_shape(
-            type="line",
-            x0=0,
-            y0=layer_top,
-            x1=first_column_start,
-            y1=table_top,
-            line=dict(color="lightgrey", width=0.25),
-        )
+        # fig.add_shape(
+        #     type="line",
+        #     x0=0,
+        #     y0=layer_top,
+        #     x1=first_column_start,
+        #     y1=table_top,
+        #     line=dict(color="lightgrey", width=0.25),
+        # )
 
         previous_density = density
         current_height = layer_top
@@ -800,8 +803,8 @@ def snow_stratification_plotly(weaklayer_thickness, layers, grain_list):
             range=[-x_max - 50, third_column_end + 50], autorange=False
         ),
         plot_bgcolor='white',
-        width=800,
-        height=600,
+        # width=np.maxinf,
+        height=max(600, .7*y_max),
         # title=dict(text="Snow Stratification", x=0.5, xanchor='center'),
     )
 
@@ -810,7 +813,7 @@ def snow_stratification_plotly(weaklayer_thickness, layers, grain_list):
     fig.update_yaxes(title_text="Height (cm)")
 
     # Adjust y-axis ticks
-    y_grid = np.arange(0, column_header, 100)
+    y_grid = np.arange(0, column_header + 200, 200)
     fig.update_yaxes(
         tickvals=y_grid,
         ticktext=[str(int(pos // 10)) for pos in y_grid],
@@ -869,7 +872,7 @@ def snow_stratification_plotly(weaklayer_thickness, layers, grain_list):
         y=(y_max + column_header) / 2,
         text="H (cm)",
         showarrow=False,
-        font=dict(color='black', size=12),
+        font=dict(color='black', size=10),
         xanchor='center',
         yanchor='middle',
     )
@@ -879,7 +882,7 @@ def snow_stratification_plotly(weaklayer_thickness, layers, grain_list):
         y=(y_max + column_header) / 2,
         text="Density (kg/m³)",
         showarrow=False,
-        font=dict(color='black', size=12),
+        font=dict(color='black', size=10),
         xanchor='center',
         yanchor='middle',
     )
@@ -889,7 +892,7 @@ def snow_stratification_plotly(weaklayer_thickness, layers, grain_list):
         y=(y_max + column_header) / 2,
         text="GF",
         showarrow=False,
-        font=dict(color='black', size=12),
+        font=dict(color='black', size=10),
         xanchor='center',
         yanchor='middle',
     )
@@ -899,7 +902,7 @@ def snow_stratification_plotly(weaklayer_thickness, layers, grain_list):
         y=(y_max + column_header) / 2,
         text="R",
         showarrow=False,
-        font=dict(color='black', size=12),
+        font=dict(color='black', size=10),
         xanchor='center',
         yanchor='middle',
     )
