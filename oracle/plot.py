@@ -255,8 +255,10 @@ def snow_profile(weaklayer_thickness, layers, grain_list):
 
     # Define colors
     COLORS = {
-        'slab_fill': "#D1E2F2",
-        'slab_line': "#3C658B",
+        'slab_fill': "#D3EBEE",
+        'slab_line': "#173045",
+        # 'slab_fill': "#D1E2F2",
+        # 'slab_line': "#3C658B",
         'weak_layer_fill': "#FFCDD2",
         'weak_layer_line': "#E57373",
         'weak_layer_text': "#C62828",
