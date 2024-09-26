@@ -260,7 +260,7 @@ def snow_profile(weaklayer_thickness, layers, grain_list):
         'weak_layer_fill': "#FFCDD2",
         'weak_layer_line': "#E57373",
         'weak_layer_text': "#C62828",
-        'substratum_fill': "#CFD8DC",
+        'substratum_fill': "#ECEFF1",
         'substratum_line': "#607D8B",
         'substratum_text': "#607D8B",
     }
@@ -272,11 +272,11 @@ def snow_profile(weaklayer_thickness, layers, grain_list):
     y_max = max(total_height * 1.1, 450)  # Ensure y_max is at least 500
 
     # Define substratum properties
-    substratum_thickness = 30
+    substratum_thickness = 50
 
     # Compute x-axis maximum based on layer densities
     max_density = max((density for density, _, _ in layers), default=400)
-    x_max = max(1.1 * max_density, 400)  # Ensure x_max is at least 400
+    x_max = max(1.05 * max_density, 400)  # Ensure x_max is at least 400
 
     # Initialize the Plotly figure
     fig = go.Figure()
@@ -285,26 +285,36 @@ def snow_profile(weaklayer_thickness, layers, grain_list):
     fig.add_shape(
         type="rect",
         x0=-x_max,
-        x1=0,
+        x1=x_max,
         y0=-substratum_thickness,
         y1=0,
         fillcolor=COLORS['substratum_fill'],
-        line=dict(width=1, color=COLORS['substratum_line']),
+        line=dict(width=2, color=COLORS['substratum_fill']),
+        # layer='below',
     )
+
+    fig.add_shape(
+        type="line",
+        x0=-x_max,
+        y0=0,
+        x1=x_max,
+        y1=0,
+        line=dict(color=COLORS['substratum_line'], width=1.2),
+    )
+
+    # Determine weak layer density
+    weak_density = 100
 
     # Add substratum label
     fig.add_annotation(
-        x=-x_max / 2,
+        x=-weak_density / 2,  # -x_max / 2,
         y=-substratum_thickness / 2,
-        text="substratum",
+        text="substratum ",
         showarrow=False,
         font=dict(color=COLORS['substratum_text'], size=10),
         xanchor='center',
         yanchor='middle',
     )
-
-    # Determine weak layer density
-    weak_density = 100
 
     # Plot the weak layer
     fig.add_shape(
@@ -334,11 +344,12 @@ def snow_profile(weaklayer_thickness, layers, grain_list):
     previous_density = 0  # Start from zero density
 
     # Define positions for annotations (table columns)
+    col_width = 0.08
     x_pos = {
-        'col1_start': 0.11 * x_max,
-        'col2_start': 0.3 * x_max,
-        'col3_start': 0.4 * x_max,
-        'col3_end': 0.49 * x_max,
+        'col1_start': 1 * col_width * x_max,
+        'col2_start': 2 * col_width * x_max,
+        'col3_start': 3 * col_width * x_max,
+        'col3_end': 4 * col_width * x_max,
     }
 
     # Compute midpoints for annotation placement
@@ -508,12 +519,12 @@ def snow_profile(weaklayer_thickness, layers, grain_list):
             range=[-1.05 * x_max, x_pos['col3_end']],
             autorange=False,
         ),
-        height=max(500, 0.75* y_max),
+        height=max(500, 0.5 * y_max),
     )
 
     # Add horizontal grid lines
     y_tick_spacing = 100 if total_height < 800 else 200
-    y_grid = np.arange(0, column_header_y + y_tick_spacing, y_tick_spacing)
+    y_grid = np.arange(0, total_height, y_tick_spacing)
     for y in y_grid:
         fig.add_shape(
             type="line",
@@ -540,9 +551,9 @@ def snow_profile(weaklayer_thickness, layers, grain_list):
 
     fig.update_yaxes(
         zeroline=False,
-        tickvals=y_grid,
-        ticktext=[str(int(y // 10)) for y in y_grid],
-        title_text="Height (cm)",
+        tickvals=[],  # y_grid,
+        # ticktext=[str(int(y // 10)) for y in y_grid],
+        # title_text="Height (cm)",
         showgrid=False,
         # linewidth=.5,
         # showline=True,
@@ -554,7 +565,7 @@ def snow_profile(weaklayer_thickness, layers, grain_list):
     fig.add_shape(
         type="line",
         x0=0,
-        y0=-substratum_thickness,
+        y0=0,  # -substratum_thickness,
         x1=0,
         y1=y_max,
         line=dict(width=1),
@@ -590,7 +601,7 @@ def snow_profile(weaklayer_thickness, layers, grain_list):
     fig.add_annotation(
         x=(0 + x_pos['col1_start']) / 2,
         y=header_y_position,
-        text="H (cm)",
+        text="H",  # "H<br>cm",  # "H (cm)",
         showarrow=False,
         font=dict(size=10),
         xanchor='center',
@@ -599,7 +610,7 @@ def snow_profile(weaklayer_thickness, layers, grain_list):
     fig.add_annotation(
         x=first_column_mid,
         y=header_y_position,
-        text="Density (kg/m³)",
+        text="D",  # 'D<br>kg/m³',  # "Density (kg/m³)",
         showarrow=False,
         font=dict(size=10),
         xanchor='center',
@@ -608,7 +619,7 @@ def snow_profile(weaklayer_thickness, layers, grain_list):
     fig.add_annotation(
         x=second_column_mid,
         y=header_y_position,
-        text="GF",
+        text='F',  # "GF",
         showarrow=False,
         font=dict(size=10),
         xanchor='center',
@@ -622,6 +633,16 @@ def snow_profile(weaklayer_thickness, layers, grain_list):
         font=dict(size=10),
         xanchor='center',
         yanchor='middle',
+    )
+
+    fig.add_annotation(
+        x=-x_max,
+        y=-substratum_thickness - 2,
+        text="H – Height (cm)           D – Density (kg/m³)           F – Grain Form           R – Hand Hardness",
+        showarrow=False,
+        xanchor='left',
+        yanchor='top',
+        align='left',
     )
 
     # Adjust the plot margins (optional)
