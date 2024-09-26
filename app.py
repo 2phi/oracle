@@ -29,6 +29,9 @@ def main():
     # Handle layer removal if needed
     handle_layer_removal()
 
+    # Handle layer movement if needed
+    handle_layer_movement()
+
     # Create a placeholder for the layer table
     layer_table_placeholder = st.empty()
 
@@ -46,14 +49,15 @@ def main():
 
 def display_header():
     """Displays the ORACLE logo and title."""
-    st.html(
+    st.markdown(
         """
         <div style="text-align: center;">
             <img src="https://github.com/2phi/oracle/raw/main/img/steampunk-v1.png" alt="ORACLE" width="200">
             <h1>ORACLE</h1>
             <p><b>Observation, Research, and Analysis of<br>Collapse and Loading Experiments</b></p>
         </div>
-        """
+        """,
+        unsafe_allow_html=True
     )
 
 
@@ -70,6 +74,13 @@ def initialize_session_state():
 
     if 'weaklayer_thickness' not in st.session_state:
         st.session_state['weaklayer_thickness'] = 30
+
+    # Initialize movement variables
+    if 'layer_to_move_up' not in st.session_state:
+        st.session_state['layer_to_move_up'] = None
+
+    if 'layer_to_move_down' not in st.session_state:
+        st.session_state['layer_to_move_down'] = None
 
 
 def display_snowprofile_header():
@@ -129,13 +140,39 @@ def handle_layer_removal():
         st.session_state['layer_to_remove'] = None  # Reset after removing
 
 
+def handle_layer_movement():
+    """Handles moving layers up or down."""
+    if st.session_state['layer_to_move_up'] is not None:
+        layer_id = st.session_state['layer_to_move_up']
+        layers = st.session_state.layers
+        for idx, layer in enumerate(layers):
+            if layer['id'] == layer_id:
+                if idx > 0:
+                    # Swap with the previous layer
+                    layers[idx], layers[idx - 1] = layers[idx - 1], layers[idx]
+                break
+        st.session_state['layer_to_move_up'] = None
+
+    if st.session_state['layer_to_move_down'] is not None:
+        layer_id = st.session_state['layer_to_move_down']
+        layers = st.session_state.layers
+        for idx, layer in enumerate(layers):
+            if layer['id'] == layer_id:
+                if idx < len(layers) - 1:
+                    # Swap with the next layer
+                    layers[idx], layers[idx + 1] = layers[idx + 1], layers[idx]
+                break
+        st.session_state['layer_to_move_down'] = None
+
+
 def render_layer_table(grain_options, hardness_options, placeholder):
     """Renders the layer table with interactive widgets."""
     with placeholder.container():
         if len(st.session_state.layers) > 0:
 
-            col0, col1, col2, col3, col4 = st.columns(
-                [1.5, 4, 3, 3, 1.4], vertical_alignment='center'
+            # Adjusted column layout to include move buttons
+            col0, col1, col2, col3, col4, col5, col6 = st.columns(
+                [1.6, 4, 3, 3, 1.2, 1.2, 1.4], vertical_alignment='center'
             )
             with col0:
                 st.markdown('Order')
@@ -146,14 +183,18 @@ def render_layer_table(grain_options, hardness_options, placeholder):
             with col3:
                 st.markdown('Hand hardness')
             with col4:
+                st.markdown('Down')
+            with col5:
+                st.markdown('Up')
+            with col6:
                 st.markdown('Delete')
 
             # Display each layer
             for i, layer in enumerate(st.session_state.layers):
                 layer_id = layer['id']
                 with st.container():
-                    col0, col1, col2, col3, col4 = st.columns(
-                        [1.5, 4, 3, 3, 1.4], vertical_alignment='center'
+                    col0, col1, col2, col3, col4, col5, col6 = st.columns(
+                        [1.6, 4, 3, 3, 1.2, 1.2, 1.4], vertical_alignment='center'
                     )
                     with col0:
                         st.markdown(f"Layer {i + 1}")
@@ -191,6 +232,34 @@ def render_layer_table(grain_options, hardness_options, placeholder):
                             args=(layer_id,),
                         )
                     with col4:
+                        # Move down button
+                        disabled = i == len(st.session_state.layers) - 1  # Disable for the last layer
+                        st.button(
+                            # "&#x2193;",
+                            # "&#x25BD;",
+                            "&#x2935;",
+                            key=f"move_down_{layer_id}",
+                            use_container_width=True,
+                            on_click=move_layer_down,
+                            args=(layer_id,),
+                            disabled=disabled,
+                            type='secondary',
+                        )
+                    with col5:
+                        # Move up button
+                        disabled = i == 0  # Disable for the first layer
+                        st.button(
+                            # "&#x2191;",
+                            # "&#x25B5;",
+                            "&#x2934;",
+                            key=f"move_up_{layer_id}",
+                            use_container_width=True,
+                            on_click=move_layer_up,
+                            args=(layer_id,),
+                            disabled=disabled,
+                            type='secondary',
+                        )
+                    with col6:
                         st.button(
                             "🗑️",
                             key=f"remove_{layer_id}",
@@ -248,10 +317,20 @@ def remove_layer(layer_id):
     st.session_state['layer_to_remove'] = layer_id
 
 
+def move_layer_up(layer_id):
+    """Triggers moving a layer up."""
+    st.session_state['layer_to_move_up'] = layer_id
+
+
+def move_layer_down(layer_id):
+    """Triggers moving a layer down."""
+    st.session_state['layer_to_move_down'] = layer_id
+
+
 def show_weaklayer_input():
     """Display the weak-layer thickness number input."""
 
-    col1, col2 = st.columns([0.3, 0.7], vertical_alignment='center')
+    col1, col2 = st.columns([0.27, 0.73], vertical_alignment='center')
 
     with col1:
         st.write('Weak-layer thickness (mm)')
