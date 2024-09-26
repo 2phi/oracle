@@ -40,9 +40,6 @@ def main():
     # Display the plot
     display_plot()
 
-    # Display the TODO list
-    display_todo_list()
-
 
 def display_header():
     """Displays the ORACLE logo and title."""
@@ -252,7 +249,7 @@ def display_plot():
         min_value=1,
         max_value=100,
         value=30,
-        step=1,
+        step=5,
     )
 
     # Plot snow stratification using Plotly
@@ -274,16 +271,15 @@ def display_plot():
     )
 
 
-def display_todo_list():
-    """Displays the TODO list."""
-    st.markdown("#### tudu")
-    st.checkbox("User input: inclination")
-    st.checkbox("User input: cutting direction")
-    st.checkbox("User input: slab faces (normal, vertical)")
-    st.checkbox("User input: column length")
-    st.checkbox("User input: cut length")
-    st.checkbox("Run WEAC to compute ERR")
-
-
 if __name__ == "__main__":
     main()
+
+# tudu
+# Abbreviations for H, D, F, R (hardness, density, grain form, hand hardness) with legends below plot
+# User input: enter layers top to bottom or bottom to top (tabs)
+# User input: inclination
+# User input: cutting direction
+# User input: slab faces (normal, vertical)
+# User input: column length
+# User input: cut length
+# Run WEAC to compute ERR
