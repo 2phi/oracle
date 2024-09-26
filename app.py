@@ -21,10 +21,7 @@ def main():
     hardness_options = list(HAND_HARDNESS.keys())[1:]
 
     # Display layer headers
-    display_layer_headers()
-
-    # Create a placeholder for the layer table
-    layer_table_placeholder = st.empty()
+    display_snowprofile_header()
 
     # Handle 'Add layer' and 'Reset all layers' buttons
     handle_layer_buttons()
@@ -32,10 +29,16 @@ def main():
     # Handle layer removal if needed
     handle_layer_removal()
 
+    # Create a placeholder for the layer table
+    layer_table_placeholder = st.empty()
+
     # Render the layer table
     render_layer_table(
         grain_options, hardness_options, layer_table_placeholder
     )
+
+    # Display the
+    show_weaklayer_input()
 
     # Display the plot
     display_plot()
@@ -65,10 +68,13 @@ def initialize_session_state():
     if 'layer_to_remove' not in st.session_state:
         st.session_state['layer_to_remove'] = None
 
+    if 'weaklayer_thickness' not in st.session_state:
+        st.session_state['weaklayer_thickness'] = 30
 
-def display_layer_headers():
+
+def display_snowprofile_header():
     """Displays the headers for the layer table."""
-    st.markdown('#### Layers')
+    st.markdown('#### Snow profile')
 
 
 def handle_layer_buttons():
@@ -143,7 +149,7 @@ def render_layer_table(grain_options, hardness_options, placeholder):
                 st.markdown('Delete')
 
             # Display each layer
-            for i, layer in enumerate(reversed(st.session_state.layers)):
+            for i, layer in enumerate(st.session_state.layers):
                 layer_id = layer['id']
                 with st.container():
                     col0, col1, col2, col3, col4 = st.columns(
@@ -193,7 +199,8 @@ def render_layer_table(grain_options, hardness_options, placeholder):
                             args=(layer_id,),
                         )
         else:
-            st.write("_Please add a first layer to be displayed here..._")
+            pass
+            # st.write("_Please add a first layer to be displayed here..._")
 
 
 def compute_density(grainform, hardness):
@@ -241,18 +248,29 @@ def remove_layer(layer_id):
     st.session_state['layer_to_remove'] = layer_id
 
 
+def show_weaklayer_input():
+    """Display the weak-layer thickness number input."""
+
+    col1, col2 = st.columns([0.3, 0.7], vertical_alignment='center')
+
+    with col1:
+        st.write('Weak-layer thickness (mm)')
+    with col2:
+        st.session_state['weaklayer_thickness'] = st.number_input(
+            label="Weak-layer thickness (mm)",
+            label_visibility='collapsed',
+            min_value=1,
+            max_value=100,
+            value=30,
+            step=5,
+        )
+
+
 def display_plot():
     """Displays the snow stratification plot."""
-    # Set weak-layer thickness
-    weak_layer_thickness = st.number_input(
-        "Weak-layer thickness (mm)",
-        min_value=1,
-        max_value=100,
-        value=30,
-        step=5,
-    )
 
     # Plot snow stratification using Plotly
+    weak_layer_thickness = st.session_state['weaklayer_thickness']
     layers_data = [
         (layer['density'], layer['thickness'], layer['hardness'])
         for layer in st.session_state.layers
@@ -275,7 +293,7 @@ if __name__ == "__main__":
     main()
 
 # tudu
-# Add layer button in other color
+# User input in inches
 # User input: enter layers top to bottom or bottom to top (tabs)
 # User input: inclination
 # User input: cutting direction

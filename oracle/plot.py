@@ -266,6 +266,9 @@ def snow_profile(weaklayer_thickness, layers, grain_list):
         'substratum_line': "#607D8B",
         'substratum_text': "#607D8B",
     }
+    
+    # Reverse layer order for plotting
+    layers = layers[::-1]
 
     # Compute total height and set y-axis maximum
     total_height = weaklayer_thickness + sum(
