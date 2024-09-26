@@ -6,5 +6,8 @@ python-dotenv==1.0.1
 Requests==2.32.3
 scipy==1.14.1
 streamlit==1.38.0
+streamlit-browser-session-storage==0.0.11
+streamlit-local-storage==0.0.24
+streamlit-screen-stats==0.0.77
 tqdm==4.66.4
 weac==2.5.2

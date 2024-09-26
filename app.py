@@ -1,5 +1,6 @@
 # Third-party imports
 import streamlit as st
+from st_screen_stats import ScreenData
 
 # Local imports
 from oracle.config import DENSITY_PARAMETERS, HAND_HARDNESS
@@ -15,6 +16,9 @@ def main():
 
     # Initialize session state variables
     initialize_session_state()
+
+    # Get and monitor the current screen width
+    watch_screen_width()
 
     # Get options for grain forms and hand hardness
     grain_options = list(DENSITY_PARAMETERS.keys())
@@ -49,15 +53,14 @@ def main():
 
 def display_header():
     """Displays the ORACLE logo and title."""
-    st.markdown(
+    st.html(
         """
         <div style="text-align: center;">
             <img src="https://github.com/2phi/oracle/raw/main/img/steampunk-v1.png" alt="ORACLE" width="200">
             <h1>ORACLE</h1>
             <p><b>Observation, Research, and Analysis of<br>Collapse and Loading Experiments</b></p>
         </div>
-        """,
-        unsafe_allow_html=True
+        """
     )
 
 
@@ -83,6 +86,12 @@ def initialize_session_state():
         st.session_state['layer_to_move_down'] = None
 
 
+def watch_screen_width():
+    # Write the screen data dict to the session state "screen_stats"
+    screenD = ScreenData(setTimeout=1000)
+    screenD.st_screen_data(key="screen_stats")
+
+
 def display_snowprofile_header():
     """Displays the headers for the layer table."""
     st.markdown('#### Snow profile')
@@ -90,7 +99,7 @@ def display_snowprofile_header():
 
 def handle_layer_buttons():
     """Handles the 'Add layer' and 'Reset all layers' buttons."""
-    add_col, reset_col = st.columns([0.8, 0.2])
+    add_col, reset_col = st.columns([0.7, 0.3])
     with add_col:
         add_layer_clicked = st.button(
             "Add layer", use_container_width=True, type='primary'
@@ -172,30 +181,34 @@ def render_layer_table(grain_options, hardness_options, placeholder):
 
             # Adjusted column layout to include move buttons
             col0, col1, col2, col3, col4, col5, col6 = st.columns(
-                [1.6, 4, 3, 3, 1.2, 1.2, 1.4], vertical_alignment='center'
+                [1.6, 4, 3, 3, 1.2, 1.2, 1.2], vertical_alignment='center'
             )
-            with col0:
-                st.markdown('Order')
-            with col1:
-                st.markdown('Layer thickness (mm)')
-            with col2:
-                st.markdown('Grain form')
-            with col3:
-                st.markdown('Hand hardness')
-            with col4:
-                st.markdown('Down')
-            with col5:
-                st.markdown('Up')
-            with col6:
-                st.markdown('Delete')
+            if st.session_state["screen_stats"]['innerWidth'] > 640:
+                with col1:
+                    st.markdown('Layer thickness (mm)')
+                with col2:
+                    st.markdown('Grain form')
+                with col3:
+                    st.markdown('Hand hardness')
 
             # Display each layer
             for i, layer in enumerate(st.session_state.layers):
                 layer_id = layer['id']
                 with st.container():
-                    col0, col1, col2, col3, col4, col5, col6 = st.columns(
-                        [1.6, 4, 3, 3, 1.2, 1.2, 1.4], vertical_alignment='center'
-                    )
+                    if (
+                        st.session_state["screen_stats"]['innerWidth'] > 640
+                        and len(st.session_state.layers) > 1
+                    ):
+                        col0, col1, col2, col3, col4, col5, col6 = st.columns(
+                            [1.6, 4, 3, 3, 1.2, 1.2, 1.2],
+                            vertical_alignment='center',
+                        )
+                    else:
+                        col4 = None
+                        col5 = None
+                        col0, col1, col2, col3, col6 = st.columns(
+                            [1.6, 4, 3, 3, 1.4], vertical_alignment='center'
+                        )
                     with col0:
                         st.markdown(f"Layer {i + 1}")
                     with col1:
@@ -231,34 +244,37 @@ def render_layer_table(grain_options, hardness_options, placeholder):
                             on_change=update_hardness,
                             args=(layer_id,),
                         )
-                    with col4:
-                        # Move down button
-                        disabled = i == len(st.session_state.layers) - 1  # Disable for the last layer
-                        st.button(
-                            # "&#x2193;",
-                            # "&#x25BD;",
-                            "&#x2935;",
-                            key=f"move_down_{layer_id}",
-                            use_container_width=True,
-                            on_click=move_layer_down,
-                            args=(layer_id,),
-                            disabled=disabled,
-                            type='secondary',
-                        )
-                    with col5:
-                        # Move up button
-                        disabled = i == 0  # Disable for the first layer
-                        st.button(
-                            # "&#x2191;",
-                            # "&#x25B5;",
-                            "&#x2934;",
-                            key=f"move_up_{layer_id}",
-                            use_container_width=True,
-                            on_click=move_layer_up,
-                            args=(layer_id,),
-                            disabled=disabled,
-                            type='secondary',
-                        )
+                    if col4 and col5 and len(st.session_state.layers) > 1:
+                        with col4:
+                            # Move down button
+                            disabled = (
+                                i == len(st.session_state.layers) - 1
+                            )  # Disable for the last layer
+                            st.button(
+                                # "&#x2193;",
+                                # "&#x25BD;",
+                                "&#x2935;",
+                                key=f"move_down_{layer_id}",
+                                use_container_width=True,
+                                on_click=move_layer_down,
+                                args=(layer_id,),
+                                disabled=disabled,
+                                type='secondary',
+                            )
+                        with col5:
+                            # Move up button
+                            disabled = i == 0  # Disable for the first layer
+                            st.button(
+                                # "&#x2191;",
+                                # "&#x25B5;",
+                                "&#x2934;",
+                                key=f"move_up_{layer_id}",
+                                use_container_width=True,
+                                on_click=move_layer_up,
+                                args=(layer_id,),
+                                disabled=disabled,
+                                type='secondary',
+                            )
                     with col6:
                         st.button(
                             "🗑️",
@@ -369,6 +385,7 @@ def display_plot():
 
 
 if __name__ == "__main__":
+
     main()
 
 # tudu
