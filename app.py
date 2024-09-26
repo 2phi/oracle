@@ -99,7 +99,7 @@ def display_snowprofile_header():
 
 def handle_layer_buttons():
     """Handles the 'Add layer' and 'Reset all layers' buttons."""
-    add_col, reset_col = st.columns([0.7, 0.3])
+    add_col, reset_col = st.columns([0.75, 0.25])
     with add_col:
         add_layer_clicked = st.button(
             "Add layer", use_container_width=True, type='primary'
@@ -180,9 +180,14 @@ def render_layer_table(grain_options, hardness_options, placeholder):
         if len(st.session_state.layers) > 0:
 
             # Adjusted column layout to include move buttons
-            col0, col1, col2, col3, col4, col5, col6 = st.columns(
-                [1.6, 4, 3, 3, 1.2, 1.2, 1.2], vertical_alignment='center'
-            )
+            if len(st.session_state.layers) > 1:
+                col0, col1, col2, col3, col4, col5, col6 = st.columns(
+                    [1.6, 4, 3, 3, 1.2, 1.2, 1.2], vertical_alignment='center'
+                )
+            else:
+                col0, col1, col2, col3, col6 = st.columns(
+                    [1.6, 4, 3, 3, 1.4], vertical_alignment='center'
+                )
             if st.session_state["screen_stats"]['innerWidth'] > 640:
                 with col1:
                     st.markdown('Layer thickness (mm)')
@@ -209,12 +214,17 @@ def render_layer_table(grain_options, hardness_options, placeholder):
                         col0, col1, col2, col3, col6 = st.columns(
                             [1.6, 4, 3, 3, 1.4], vertical_alignment='center'
                         )
+
+                    if st.session_state["screen_stats"]['innerWidth'] < 640:
+                        label_visibility = 'visible'
+                    else:
+                        label_visibility = 'collapsed'
                     with col0:
                         st.markdown(f"Layer {i + 1}")
                     with col1:
                         st.number_input(
-                            f"Thickness (mm) of layer {layer_id}",
-                            label_visibility='collapsed',
+                            "Thickness (mm)",
+                            label_visibility=label_visibility,
                             format='%d',
                             min_value=1,
                             max_value=1000,
@@ -226,8 +236,8 @@ def render_layer_table(grain_options, hardness_options, placeholder):
                         )
                     with col2:
                         st.selectbox(
-                            f"Grain form of layer {layer_id}",
-                            label_visibility='collapsed',
+                            "Grain Form",
+                            label_visibility=label_visibility,
                             options=grain_options,
                             index=grain_options.index(layer['grain']),
                             key=f"grainform_{layer_id}",
@@ -236,8 +246,8 @@ def render_layer_table(grain_options, hardness_options, placeholder):
                         )
                     with col3:
                         st.selectbox(
-                            f"Hand hardness of layer {layer_id}",
-                            label_visibility='collapsed',
+                            "Hand Hardness",
+                            label_visibility=label_visibility,
                             options=hardness_options,
                             index=hardness_options.index(layer['hardness']),
                             key=f"hardness_{layer_id}",
@@ -265,9 +275,9 @@ def render_layer_table(grain_options, hardness_options, placeholder):
                             # Move up button
                             disabled = i == 0  # Disable for the first layer
                             st.button(
+                                label="&#x2934;",
                                 # "&#x2191;",
                                 # "&#x25B5;",
-                                "&#x2934;",
                                 key=f"move_up_{layer_id}",
                                 use_container_width=True,
                                 on_click=move_layer_up,
@@ -276,6 +286,11 @@ def render_layer_table(grain_options, hardness_options, placeholder):
                                 type='secondary',
                             )
                     with col6:
+                        if label_visibility == 'visible':
+                            st.markdown(
+                                """<p style="font-size: 14px; margin-bottom: 0;">Remove</p>""",
+                                unsafe_allow_html=True,
+                            )
                         st.button(
                             "🗑️",
                             key=f"remove_{layer_id}",
