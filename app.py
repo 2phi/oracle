@@ -150,7 +150,7 @@ def render_layer_table(grain_options, hardness_options, placeholder):
                         [1.5, 4, 3, 3, 1.4], vertical_alignment='center'
                     )
                     with col0:
-                        st.markdown(f"Layer {layer_id + 1}")
+                        st.markdown(f"Layer {i + 1}")
                     with col1:
                         st.number_input(
                             f"Thickness (mm) of layer {layer_id}",
@@ -275,7 +275,7 @@ if __name__ == "__main__":
     main()
 
 # tudu
-# Abbreviations for H, D, F, R (hardness, density, grain form, hand hardness) with legends below plot
+# Add layer button in other color
 # User input: enter layers top to bottom or bottom to top (tabs)
 # User input: inclination
 # User input: cutting direction
