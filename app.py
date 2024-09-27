@@ -181,36 +181,52 @@ def add_new_layer():
 
 
 def handle_layer_removal():
-    """Removes a layer if the remove button was clicked."""
+    """Removes a layer if the remove button was clicked, accounting for reversed display order."""
     if st.session_state['layer_to_remove'] is not None:
         layer_id_to_remove = st.session_state['layer_to_remove']
-        st.session_state.layers = [
-            l for l in st.session_state.layers if l['id'] != layer_id_to_remove
-        ]
+        # Since layers are displayed in reversed order, find the layer index accordingly
+        for idx, layer in enumerate(reversed(st.session_state.layers)):
+            if layer['id'] == layer_id_to_remove:
+                # Calculate the actual index in st.session_state.layers
+                actual_idx = len(st.session_state.layers) - 1 - idx
+                # Remove the layer at the actual index
+                del st.session_state.layers[actual_idx]
+                break
         st.session_state['layer_to_remove'] = None  # Reset after removing
 
 
 def handle_layer_movement():
-    """Handles moving layers up or down."""
+    """Handles moving layers up or down, accounting for reversed display order."""
+    layers = st.session_state.layers
+    total_layers = len(layers)
+
     if st.session_state['layer_to_move_up'] is not None:
         layer_id = st.session_state['layer_to_move_up']
-        layers = st.session_state.layers
-        for idx, layer in enumerate(layers):
+        # Since layers are displayed in reversed order, moving up increases the index
+        for idx, layer in enumerate(reversed(layers)):
             if layer['id'] == layer_id:
-                if idx > 0:
-                    # Swap with the previous layer
-                    layers[idx], layers[idx - 1] = layers[idx - 1], layers[idx]
+                actual_idx = total_layers - 1 - idx
+                if actual_idx < total_layers - 1:
+                    # Swap with the next layer in the list to move up in display
+                    layers[actual_idx], layers[actual_idx + 1] = (
+                        layers[actual_idx + 1],
+                        layers[actual_idx],
+                    )
                 break
         st.session_state['layer_to_move_up'] = None
 
     if st.session_state['layer_to_move_down'] is not None:
         layer_id = st.session_state['layer_to_move_down']
-        layers = st.session_state.layers
-        for idx, layer in enumerate(layers):
+        # Since layers are displayed in reversed order, moving down decreases the index
+        for idx, layer in enumerate(reversed(layers)):
             if layer['id'] == layer_id:
-                if idx < len(layers) - 1:
-                    # Swap with the next layer
-                    layers[idx], layers[idx + 1] = layers[idx + 1], layers[idx]
+                actual_idx = total_layers - 1 - idx
+                if actual_idx > 0:
+                    # Swap with the previous layer in the list to move down in display
+                    layers[actual_idx], layers[actual_idx - 1] = (
+                        layers[actual_idx - 1],
+                        layers[actual_idx],
+                    )
                 break
         st.session_state['layer_to_move_down'] = None
 
@@ -312,8 +328,6 @@ def render_layer_table(placeholder):
                                 i == len(st.session_state.layers) - 1
                             )  # Disable for the last layer
                             st.button(
-                                # "&#x2193;",
-                                # "&#x25BD;",
                                 "&#x2935;",
                                 key=f"move_down_{layer_id}",
                                 use_container_width=True,
@@ -327,8 +341,6 @@ def render_layer_table(placeholder):
                             disabled = i == 0  # Disable for the first layer
                             st.button(
                                 label="&#x2934;",
-                                # "&#x2191;",
-                                # "&#x25B5;",
                                 key=f"move_up_{layer_id}",
                                 use_container_width=True,
                                 on_click=move_layer_up,
