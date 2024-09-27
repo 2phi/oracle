@@ -268,7 +268,7 @@ def snow_profile(weaklayer_thickness, layers, grain_list):
     }
     
     # Reverse layer order for plotting
-    layers = layers[::-1]
+    # layers = layers[::-1]
 
     # Compute total height and set y-axis maximum
     total_height = weaklayer_thickness + sum(
@@ -524,7 +524,7 @@ def snow_profile(weaklayer_thickness, layers, grain_list):
             range=[-1.05 * x_max, x_pos['col3_end']],
             autorange=False,
         ),
-        height=max(500, 0.5 * y_max),
+        height=max(500, 0.4 * y_max),
     )
 
     # Add horizontal grid lines

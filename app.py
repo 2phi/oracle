@@ -1,4 +1,6 @@
 # Third-party imports
+import random
+import numpy as np
 import streamlit as st
 from st_screen_stats import ScreenData
 
@@ -9,7 +11,7 @@ from oracle import plot
 
 def main():
     # Set page configuration
-    st.set_page_config(page_title="ORACLE", layout="centered")
+    st.set_page_config(page_title='ORACLE', layout='centered')
 
     # Display ORACLE logo and title
     display_header()
@@ -19,10 +21,6 @@ def main():
 
     # Get and monitor the current screen width
     watch_screen_width()
-
-    # Get options for grain forms and hand hardness
-    grain_options = list(DENSITY_PARAMETERS.keys())
-    hardness_options = list(HAND_HARDNESS.keys())[1:]
 
     # Display layer headers
     display_snowprofile_header()
@@ -40,11 +38,9 @@ def main():
     layer_table_placeholder = st.empty()
 
     # Render the layer table
-    render_layer_table(
-        grain_options, hardness_options, layer_table_placeholder
-    )
+    render_layer_table(layer_table_placeholder)
 
-    # Display the
+    # Display the weak-layer input
     show_weaklayer_input()
 
     # Display the plot
@@ -78,12 +74,17 @@ def initialize_session_state():
     if 'weaklayer_thickness' not in st.session_state:
         st.session_state['weaklayer_thickness'] = 30
 
-    # Initialize movement variables
     if 'layer_to_move_up' not in st.session_state:
         st.session_state['layer_to_move_up'] = None
 
     if 'layer_to_move_down' not in st.session_state:
         st.session_state['layer_to_move_down'] = None
+
+    if "grain_options" not in st.session_state:
+        st.session_state.grain_options = list(DENSITY_PARAMETERS.keys())
+
+    if "hardness_options" not in st.session_state:
+        st.session_state.hardness_options = list(HAND_HARDNESS.keys())[1:]
 
 
 def watch_screen_width():
@@ -119,24 +120,64 @@ def handle_layer_buttons():
 
 def add_new_layer():
     """Adds a new layer with default values."""
-    default_thickness = 100  # Default thickness in mm
-    default_grainform = 'RG'  # Default grain form
-    default_hardness = '4F'  # Default hand hardness
 
-    density = compute_density(default_grainform, default_hardness)
+    def weighted_choice(options, weights):
+        """Returns a weighted random choice from the options list."""
+        return random.choices(options, weights=weights, k=1)[0]
+
+    def generate_random_layer(
+        layer_id, grain_options, hardness_options, max=10
+    ):
+        """Generates randomized values for a new layer, with layer_id biasing the selection."""
+
+        # Adjust weights based on layer_id: lower layer_id means more bias towards the end of the list
+        id = min(layer_id, max)
+        n_grains = len(grain_options)
+        n_hardness = len(hardness_options)
+
+        # Stronger bias factor - increase the multiplier for stronger bias
+        bias = 5
+
+        # Linear interpolation for weights (stronger bias at layer_id = 0, uniform at layer_id = 10)
+        grain_weights = np.linspace(1, bias * (max - id) / max, n_grains)
+        hardness_weights = np.linspace(1, bias * (max - id) / max, n_hardness)
+
+        # Normalize weights so they sum to 1 (random.choices needs normalized weights)
+        grain_weights /= np.sum(grain_weights)
+        hardness_weights /= np.sum(hardness_weights)
+
+        # Randomize thickness: normal distribution with mean 100 and standard deviation 50,
+        # round to the nearest 20, and clip to the range 20-220
+        thickness = round(np.random.normal(100, 50) / 20) * 20
+        thickness = np.clip(thickness, 20, 220)
+
+        # Select grainform and hardness with weighted bias towards the end
+        grainform = weighted_choice(grain_options, grain_weights)
+        hardness = weighted_choice(hardness_options, hardness_weights)
+
+        return thickness, grainform, hardness
 
     layer_id = st.session_state.layer_id_counter
     st.session_state.layer_id_counter += 1
 
+    thickness, grainform, hardness = generate_random_layer(
+        layer_id,
+        st.session_state.grain_options[3:-2],
+        st.session_state.hardness_options[:-4],
+    )
+
+    density = compute_density(grainform, hardness)
+
     layer = {
         'id': layer_id,
         'density': density,
-        'thickness': default_thickness,
-        'hardness': default_hardness,
-        'grain': default_grainform,
+        'thickness': thickness,
+        'hardness': hardness,
+        'grain': grainform,
     }
 
-    st.session_state.layers.insert(0, layer)
+    # Append the new layer at the end of the list
+    st.session_state.layers.append(layer)
 
 
 def handle_layer_removal():
@@ -174,8 +215,11 @@ def handle_layer_movement():
         st.session_state['layer_to_move_down'] = None
 
 
-def render_layer_table(grain_options, hardness_options, placeholder):
+def render_layer_table(placeholder):
     """Renders the layer table with interactive widgets."""
+    grain_options = st.session_state.grain_options
+    hardness_options = st.session_state.hardness_options
+
     with placeholder.container():
         if len(st.session_state.layers) > 0:
 
@@ -196,8 +240,11 @@ def render_layer_table(grain_options, hardness_options, placeholder):
                 with col3:
                     st.markdown('Hand hardness')
 
+            # Reverse the layers to display the newest at the top
+            layers = list(reversed(st.session_state.layers))
+
             # Display each layer
-            for i, layer in enumerate(st.session_state.layers):
+            for i, layer in enumerate(layers):
                 layer_id = layer['id']
                 with st.container():
                     if (
@@ -219,8 +266,12 @@ def render_layer_table(grain_options, hardness_options, placeholder):
                         label_visibility = 'visible'
                     else:
                         label_visibility = 'collapsed'
+
+                    # Calculate the layer number
+                    layer_number = i + 1
+
                     with col0:
-                        st.markdown(f"Layer {i + 1}")
+                        st.markdown(f"Layer {layer_number}")
                     with col1:
                         st.number_input(
                             "Thickness (mm)",
@@ -400,7 +451,6 @@ def display_plot():
 
 
 if __name__ == "__main__":
-
     main()
 
 # tudu
