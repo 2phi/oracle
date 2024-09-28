@@ -240,14 +240,13 @@ def distribution(
         plt.xscale('log')
 
 
-def snow_profile(weaklayer_thickness, layers, grain_list):
+def snow_profile(weaklayer_thickness, layers):
     """
     Generates a snow stratification profile plot using Plotly.
 
     Parameters:
     - weaklayer_thickness (float): Thickness of the weak layer in the snowpack.
-    - layers (list of tuples): Each tuple contains (density, thickness, hand_hardness) of a layer.
-    - grain_list (list): List of grain forms corresponding to each layer.
+    - layers (list of dicts): Each dict has keys density, thickness, hardness, and grain of a layer.
 
     Returns:
     - fig (go.Figure): A Plotly figure object representing the snow profile.
@@ -266,13 +265,10 @@ def snow_profile(weaklayer_thickness, layers, grain_list):
         'substratum_line': "#607D8B",
         'substratum_text': "#607D8B",
     }
-    
-    # Reverse layer order for plotting
-    layers = layers[::-1]
 
     # Compute total height and set y-axis maximum
     total_height = weaklayer_thickness + sum(
-        thickness for _, thickness, _ in layers
+        layer['thickness'] for layer in layers
     )
     y_max = max(total_height * 1.1, 450)  # Ensure y_max is at least 500
 
@@ -280,7 +276,7 @@ def snow_profile(weaklayer_thickness, layers, grain_list):
     substratum_thickness = 50
 
     # Compute x-axis maximum based on layer densities
-    max_density = max((density for density, _, _ in layers), default=400)
+    max_density = max((layer['density'] for layer in layers), default=400)
     x_max = max(1.05 * max_density, 400)  # Ensure x_max is at least 400
 
     # Initialize the Plotly figure
@@ -375,7 +371,13 @@ def snow_profile(weaklayer_thickness, layers, grain_list):
     current_table_y = weaklayer_thickness
 
     # Loop through each layer and plot
-    for (density, thickness, hand_hardness), grain in zip(layers, grain_list):
+    for layer in layers:
+        
+        density = layer['density']
+        thickness = layer['thickness']
+        hand_hardness = layer['hardness']
+        grain = layer['grain']
+        
         # Define layer boundaries
         layer_bottom = current_height
         layer_top = current_height + thickness
@@ -652,5 +654,108 @@ def snow_profile(weaklayer_thickness, layers, grain_list):
 
     # Adjust the plot margins (optional)
     fig.update_layout(margin=dict(l=0, r=0, t=40, b=40))
+
+    return fig
+
+
+def weaklayer_instability(bar_position):
+    # Define box labels and colors
+    labels = ['good', 'fair', 'poor', 'very poor']
+    # box_colors = ['green', 'yellow', 'orange', 'red']
+    box_colors = ['#C1E67E', '#FFDA62', '#F7AB50', '#C70039']
+    gray_color = 'lightgray'
+
+    # Define box positions with a small gap between them
+    gap = 0.01
+    box_width = (1 - 3 * gap) / 4
+    positions = [i * (box_width + gap) for i in range(len(labels))]
+
+    # Create box shapes with correct coloring
+    shapes = []
+    for i, pos in enumerate(positions):
+        if (
+            (i == 0 and bar_position <= 0.25)
+            or (i == 1 and 0.25 < bar_position <= 0.5)
+            or (i == 2 and 0.5 < bar_position <= 0.75)
+            or (i == 3 and 0.75 < bar_position <= 1)
+        ):
+            fill_color = box_colors[i]
+        else:
+            fill_color = gray_color
+
+        shapes.append(
+            {
+                'type': 'rect',
+                'xref': 'x',
+                'yref': 'y',
+                'x0': pos,
+                'x1': pos + box_width,
+                'y0': 0.4,
+                'y1': 0.9,
+                'fillcolor': fill_color,
+                'opacity': 1,
+                'line': {'width': 0},  # No outline
+                'layer': 'below',
+            }
+        )
+
+    # Create the vertical bar extending above and below the boxes
+    shapes.append(
+        {
+            'type': 'line',
+            'xref': 'x',
+            'yref': 'y',
+            'x0': bar_position,
+            'x1': bar_position,
+            'y0': 0.3,
+            'y1': 1,  # Extend above and below the boxes
+            'line': {'color': 'white', 'width': 7},
+        }
+    )
+    shapes.append(
+        {
+            'type': 'line',
+            'xref': 'x',
+            'yref': 'y',
+            'x0': bar_position,
+            'x1': bar_position,
+            'y0': 0.3,
+            'y1': 1,  # Extend above and below the boxes
+            'line': {'color': 'black', 'width': 2},
+        }
+    )
+
+    # Create the figure
+    fig = go.Figure()
+
+    # Add shapes to the figure
+    fig.update_layout(
+        shapes=shapes,
+        xaxis={
+            'range': [0, 1],
+            'showgrid': False,
+            'zeroline': False,
+            'visible': False,
+        },
+        yaxis={
+            'range': [0, 1],
+            'showgrid': False,
+            'zeroline': False,
+            'visible': False,
+        },
+        height=50,
+        width=800,
+        margin=dict(t=0, b=0, l=0, r=0),
+    )
+
+    # Add labels as annotations below the boxes
+    for i, pos in enumerate(positions):
+        fig.add_annotation(
+            x=pos + box_width / 2,
+            y=0.15,
+            text=labels[i],
+            showarrow=False,
+            font=dict(size=12),
+        )
 
     return fig

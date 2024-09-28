@@ -1,7 +1,11 @@
 # Third-party imports
+import weac
 import random
+import base64
 import numpy as np
 import streamlit as st
+import scipy.stats as stats
+from pathlib import Path
 from st_screen_stats import ScreenData
 
 # Local imports
@@ -12,7 +16,7 @@ from oracle import plot
 def main():
     """Main function to run the Streamlit app."""
     # Set page configuration
-    st.set_page_config(page_title='ORACLE', layout='centered')
+    st.set_page_config(page_title='ORACLE', layout='centered', page_icon='🔮')
 
     # Display the ORACLE logo and title
     display_header()
@@ -38,21 +42,60 @@ def main():
     # Display weak-layer thickness input
     show_weaklayer_input()
 
+    # Show snow profile instructions
+    show_snowprofile_instructions()
+
     # Display the snow stratification plot
-    display_plot()
+    display_snow_profile()
+
+    # Propagation saw test
+    st.markdown('#### Propagation saw test')
+
+    # Handle PST inputs
+    handle_pst_inputs()
+
+    # Show PST instructions
+    show_pst_instructions()
+
+    # Run weac to compute ERR and weak-layer instability
+    run_weac()
+
+    # Show results
+    st.markdown('#### Weak-layer condition')
+
+    # ORACLE!
+    display_result()
+    
+    # Show result explanation
+    show_result_explanation()
 
 
 def display_header():
     """Displays the ORACLE logo and title."""
+
+    def img_to_bytes(img_path):
+        img_bytes = Path(img_path).read_bytes()
+        return base64.b64encode(img_bytes).decode()
+
+    def img_to_html(img_path, width=200, align='center'):
+        img_html = f"""
+            <div style="text-align: {align};">
+                <img src='data:image/png;base64,{img_to_bytes(img_path)}' class='img-fluid' width={width}>
+            </div>
+            """
+        return img_html
+
+    # Display the ORACLE logo
+    st.html(img_to_html('img/steampunk-v1.png'))
+
+    # Display the ORACLE title
     st.html(
         """
         <div style="text-align: center;">
-            <img src="https://github.com/2phi/oracle/raw/main/img/steampunk-v1.png" alt="ORACLE" width="200">
             <h1>ORACLE</h1>
             <p><b>Observation, Research, and Analysis of<br>Collapse and Loading Experiments</b></p>
         </div>
         """
-        unsafe_allow_html=True,
     )
 
 
@@ -68,6 +111,7 @@ def initialize_session_state():
     state.setdefault('layer_to_move_down', None)
     state.setdefault('grain_options', list(DENSITY_PARAMETERS.keys()))
     state.setdefault('hardness_options', list(HAND_HARDNESS.keys())[1:])
+    state.setdefault('weakness', None)
 
 
 def watch_screen_width():
@@ -112,32 +156,26 @@ def add_new_layer():
         return random.choices(options, weights=weights, k=1)[0]
 
     def generate_random_layer(
-        layer_id, grain_options, hardness_options, max_layers=10
+        layer_id, grain_options, hardness_options, max=10
     ):
         """Generates random properties for a new layer."""
         # Adjust the bias based on the layer ID
-        id = min(layer_id, max_layers)
+        id = min(layer_id, max)
         n_grains = len(grain_options)
         n_hardness = len(hardness_options)
         bias = 5  # Bias factor for weighted choices
 
         # Create weights for grain options
-        grain_weights = np.linspace(
-            1, bias * (max_layers - id) / max_layers, n_grains
-        )
+        grain_weights = np.linspace(1, bias * (max - id) / max, n_grains)
         grain_weights /= np.sum(grain_weights)
 
         # Create weights for hardness options
-        hardness_weights = np.linspace(
-            1, bias * (max_layers - id) / max_layers, n_hardness
-        )
+        hardness_weights = np.linspace(1, bias * (max - id) / max, n_hardness)
         hardness_weights /= np.sum(hardness_weights)
 
-        # Generate random thickness
-        thickness = (
-            round(np.clip(np.random.normal(100, 50), 20, 220) / 20) * 20
-        )
-        thickness = int(thickness)
+        # Generate random thickness (mean=100, std=50, rounded to nearest 20, clipped to 20-200)
+        thickness = round(np.random.normal(100, 50) / 20) * 20
+        thickness = np.clip(thickness, 20, 200)
 
         # Select grain form and hardness using weighted choices
         grainform = weighted_choice(grain_options, grain_weights)
@@ -230,26 +268,28 @@ def render_layer_table():
     grain_options = st.session_state.grain_options
     hardness_options = st.session_state.hardness_options
     layers = st.session_state.layers
-    num_layers = len(layers)
+    n_layers = len(layers)
     screen_width = st.session_state["screen_stats"]['innerWidth']
 
     # Determine label visibility based on screen width
     label_visibility = 'visible' if screen_width < 640 else 'collapsed'
 
-    if num_layers > 0:
+    if n_layers > 0:
+
+        # Define column widths
+        col_widths = [1.6, 4, 3, 3]
+        if n_layers > 1 and screen_width > 640:
+            # Add columns for movement buttons
+            col_widths.extend([1.2, 1.2, 1.2])
+        else:
+            # Only remove button
+            col_widths.append(1.4)
+
         # Display table headers based on screen width
         if screen_width > 640:
-            # Define column widths
-            header_cols = [1.6, 4, 3, 3]
-            if num_layers > 1:
-                header_cols.extend(
-                    [1.2, 1.2, 1.2]
-                )  # Add columns for movement buttons
-            else:
-                header_cols.append(1.4)  # Only remove button
 
             # Create header columns
-            cols = st.columns(header_cols)
+            cols = st.columns(col_widths)
 
             with cols[1]:
                 st.markdown('Layer thickness (mm)')
@@ -262,22 +302,17 @@ def render_layer_table():
         for i, layer in enumerate(layers):
             layer_id = layer['id']
 
-            # Define column widths for layer rows
-            row_cols = [1.6, 4, 3, 3]
-            if num_layers > 1:
-                row_cols.extend(
-                    [1.2, 1.2, 1.2]
-                )  # Add columns for movement buttons
-            else:
-                row_cols.append(1.4)  # Only remove button
-
             # Create columns for the layer
-            cols = st.columns(row_cols)
+            cols = st.columns(col_widths, vertical_alignment='center')
 
             # Unpack columns
             col_label, col_thickness, col_grain, col_hardness = cols[:4]
-            col_move_down = cols[4] if num_layers > 1 else None
-            col_move_up = cols[5] if num_layers > 1 else None
+            if n_layers > 1 and screen_width > 640:
+                col_move_down = cols[4]
+                col_move_up = cols[5]
+            else:
+                col_move_down = None
+                col_move_up = None
             col_remove = cols[-1]
 
             with col_label:
@@ -321,12 +356,11 @@ def render_layer_table():
                     args=(layer_id,),
                 )
 
-            if num_layers > 1 and col_move_down and col_move_up:
+            if n_layers > 1 and col_move_down and col_move_up:
                 with col_move_down:
+                    # Disable for the bottom layer
+                    disabled = i == n_layers - 1
                     # Move layer down button
-                    disabled = (
-                        i == num_layers - 1
-                    )  # Disable for the bottom layer
                     st.button(
                         "&#x2935;",
                         key=f"move_down_{layer_id}",
@@ -338,8 +372,9 @@ def render_layer_table():
                     )
 
                 with col_move_up:
+                    # Disable for the top layer
+                    disabled = i == 0
                     # Move layer up button
-                    disabled = i == 0  # Disable for the top layer
                     st.button(
                         "&#x2934;",
                         key=f"move_up_{layer_id}",
@@ -352,7 +387,10 @@ def render_layer_table():
 
             with col_remove:
                 if label_visibility == 'visible':
-                    st.markdown("Remove")
+                    st.markdown(
+                        """<p style="font-size: 14px; margin-bottom: 0;">Remove</p>""",
+                        unsafe_allow_html=True,
+                    )
                 # Remove layer button
                 st.button(
                     "🗑️",
@@ -435,38 +473,192 @@ def show_weaklayer_input():
         )
 
 
-def display_plot():
-    """Displays the snow stratification plot."""
-    # Get weak-layer thickness
-    weak_layer_thickness = st.session_state['weaklayer_thickness']
+def show_snowprofile_instructions():
+    """Displays instructions for entering snow profile data."""
+    s = st.expander('💡 How to enter snow profile data')
+    with s:
+        s.markdown(
+            """
+            This interface allows you to enter all layers above the tested weak
+            layer. Click `Add layer` to add layers bottom (above the weak layer) to top (snow surface).
+            For every layer, you can adjust its thickness, primary grain form, and hand
+            hardness. You can move or delete individual layers up or down and delete them.
+            The profile you have entered is illustrated below.
+            """
+        )
 
-    # Prepare data for plotting
-    layers_data = [
-        (layer['density'], layer['thickness'], layer['hardness'])
+
+def display_snow_profile():
+    """Displays the snow stratification plot."""
+
+    if st.session_state['layers']:
+
+        # Generate the plot
+        fig = plot.snow_profile(
+            st.session_state['weaklayer_thickness'],
+            st.session_state['layers'][::-1],
+        )
+
+        # Display the plot
+        st.plotly_chart(
+            fig,
+            use_container_width=True,
+            config={
+                'displayModeBar': False,
+                'scrollZoom': False,
+                'staticPlot': True,
+            },
+        )
+
+
+def show_pst_instructions():
+    """Displays instructions for entering PST data."""
+    s = st.expander('💡 How to enter your PST data')
+    with s:
+        s.markdown(
+            """
+            Enter PST cut length and column length, indicate whether the cut was made
+            upslope or downslope, and whether the slab faces are vertical or slope-normal.
+            Finally set the slope angle. The result is calculated in real-time and will
+            update immediately.
+            """
+        )
+
+
+def run_weac(E=0.2, s=1.435, loc=-0.0036, scale=1.143):
+
+    # Vertical or slope-normale slab faces
+    if st.session_state['slab_faces'] == 'Vertical':
+        system = 'vpst'
+    elif st.session_state['slab_faces'] == 'Slope-normal':
+        system = 'pst'
+
+    # Upslope or downslope cut
+    if st.session_state['cutting_direction'] == 'Upslope':
+        system = '-' + system
+    elif st.session_state['cutting_direction'] == 'Downslope':
+        system = system + '-'
+
+    # Layer data top to bottom
+    layers = [
+        (layer['density'], layer['thickness'])
         for layer in st.session_state.layers
     ]
-    grains = [layer['grain'] for layer in st.session_state.layers]
 
-    # Generate the plot
-    fig = plot.snow_profile(weak_layer_thickness, layers_data, grains)
+    # Parameters
+    t = st.session_state['weaklayer_thickness']
+    L = 10 * st.session_state['column_length']
+    a = 10 * st.session_state['cut_length']
+    phi = st.session_state['inclination']
 
-    # Display the plot
-    st.plotly_chart(
-        fig,
-        use_container_width=True,
-        config={
-            'displayModeBar': False,
-            'scrollZoom': False,
-            'staticPlot': True,
-        },
+    # Initialize PST object and set weak-layer properties
+    pst = weac.Layered(system=system, layers=layers)
+    pst.set_foundation_properties(t=t, E=E, update=True)
+
+    # Calculate segmentation and solve for free constants
+    segments = pst.calc_segments(phi=phi, L=L, a=a)['crack']
+    C = pst.assemble_and_solve(phi=phi, **segments)
+
+    # Calculate ERR and weak-layer instability
+    Gdif = pst.gdif(C, phi, **segments, unit='J/m^2')[0]
+    st.session_state['weakness'] = 1 - stats.lognorm.cdf(Gdif, s, loc, scale)
+
+
+def handle_pst_inputs():
+
+    cols = st.columns([3, 2], gap='large')
+
+    st.slider(
+        "Inclination, slope angle ( ° )",
+        min_value=0,
+        max_value=90,
+        value=25,
+        step=1,
+        key='inclination',
     )
+    with cols[0]:
+        st.number_input(
+            "Cut length (cm)",
+            min_value=1,
+            max_value=100,
+            value=30,
+            step=10,
+            key='cut_length',
+        )
+    with cols[0]:
+        st.number_input(
+            "Column length (cm)",
+            min_value=1,
+            max_value=10000,
+            value=100,
+            step=50,
+            key='column_length',
+        )
+    with cols[1]:
+        st.radio(
+            "Cutting direction",
+            options=['Upslope', 'Downslope'],
+            index=0,
+            key='cutting_direction',
+            horizontal=True,
+        )
+    with cols[1]:
+        st.radio(
+            "Slab faces",
+            options=['Slope-normal', 'Vertical'],
+            index=0,
+            key='slab_faces',
+            horizontal=True,
+        )
 
+
+def display_result():
+    """Show final result."""
+
+    if st.session_state['layers']:
+
+        # Generate the plot
+        fig = plot.weaklayer_instability(st.session_state['weakness'])
+
+        # Display the plot
+        st.plotly_chart(
+            fig,
+            use_container_width=True,
+            config={
+                'displayModeBar': False,
+                'scrollZoom': False,
+                'staticPlot': True,
+            },
+        )
+
+    else:
+        st.warning('Add snow-profile information to display a result.')
+
+def show_result_explanation():
+    """Displays the explanation of the result."""
+    s = st.expander('💡 How is this calculated?')
+    with s:
+        s.markdown(
+            """
+            ORACLE calculates the fracture toughness (fracture energy) of the weak layer
+            ested in entered propagation saw test (PST). The fracture toughness is the
+            critical energy release rate that is observed when the crack introduced be the
+            saw becomes unstable and propagates. The model accounts for every slab layer
+            and considers boundary effects. We have analyzed over 2300 PSTs to determine
+            the probability distribution of expected weak-layer fracture toughness values.
+            By comparing the fracture toughness of the entered weak layer to this
+            distribution, we can estimate how weak this weak layer is compared to all other
+            weak layers in our database.
+            """
+        )
 
 if __name__ == "__main__":
     main()
 
 # TODO:
 # - Allow user input in inches
+# - Weak-layer graintype input (with E from Jakob's data)
 # - Provide option to enter layers top-to-bottom or bottom-to-top
-# - Add inputs for inclination, cutting direction, slab faces, column length, and cut length
-# - Integrate WEAC to compute ERR
+# - Color grain types in profile
+# - Record input data for future reference
+# - Add version number an manage relaeses
