@@ -608,7 +608,7 @@ def handle_pst_inputs():
             min_value=1,
             max_value=100,
             value=30,
-            step=10,
+            step=5,
             key='cut_length',
         )
     with cols[0]:
