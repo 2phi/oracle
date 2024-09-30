@@ -2,11 +2,13 @@
 import weac
 import random
 import base64
+import json
 import numpy as np
 import streamlit as st
 import scipy.stats as stats
 from pathlib import Path
 from st_screen_stats import ScreenData
+from streamlit_theme import st_theme
 
 # Local imports
 from oracle.config import DENSITY_PARAMETERS, HAND_HARDNESS
@@ -27,6 +29,16 @@ def main():
     # Monitor screen width for responsive design
     watch_screen_width()
 
+    st.info(
+        r"""
+        **ORACLE** evaluates weak-layer conditions based on propagation saw tests (PSTs).
+        
+        1. Click **Add Layer** to add slab layers from the bottom to the top, starting above the weak layer.
+        2. Enter your PST data and view the results in real time.
+        3. Adjust parameters as needed and observe how they impact the results instantly.
+        """
+    )
+
     # Display header for the snow profile section
     st.markdown('#### Snow profile')
 
@@ -42,9 +54,6 @@ def main():
     # Display weak-layer thickness input
     show_weaklayer_input()
 
-    # Show snow profile instructions
-    show_snowprofile_instructions()
-
     # Display the snow stratification plot
     display_snow_profile()
 
@@ -55,7 +64,7 @@ def main():
     handle_pst_inputs()
 
     # Show PST instructions
-    show_pst_instructions()
+    show_pst_tooltip()
 
     # Run weac to compute ERR and weak-layer instability
     run_weac()
@@ -65,9 +74,6 @@ def main():
 
     # ORACLE!
     display_result()
-    
-    # Show result explanation
-    show_result_explanation()
 
 
 def display_header():
@@ -112,6 +118,7 @@ def initialize_session_state():
     state.setdefault('grain_options', list(DENSITY_PARAMETERS.keys()))
     state.setdefault('hardness_options', list(HAND_HARDNESS.keys())[1:])
     state.setdefault('weakness', None)
+    st_theme(key='theme')
 
 
 def watch_screen_width():
@@ -400,6 +407,14 @@ def render_layer_table():
                     args=(layer_id,),
                 )
 
+    else:
+        st.warning(
+            """
+        Click **Add layer** to add layers above the weak layer and
+        to display the snow profile.
+        """
+        )
+
 
 def update_thickness(layer_id):
     """Updates the thickness of a layer."""
@@ -452,38 +467,44 @@ def move_layer_down(layer_id):
 
 def show_weaklayer_input():
     """Displays the weak-layer thickness input."""
+
     # Create columns for label and input
     col_label, col_input = st.columns(
         [0.27, 0.73], vertical_alignment='center'
     )
 
-    with col_label:
-        st.write('Weak-layer thickness (mm)')
+    if st.session_state.layers:
 
-    with col_input:
-        # Weak-layer thickness input
-        st.number_input(
-            label="Weak-layer thickness (mm)",
-            label_visibility='collapsed',
-            min_value=1,
-            max_value=100,
-            value=st.session_state.get('weaklayer_thickness', 30),
-            step=5,
-            key='weaklayer_thickness',
-        )
+        with col_label:
+            st.write('Weak-layer thickness (mm)')
+
+        with col_input:
+            # Weak-layer thickness input
+            st.number_input(
+                label="Weak-layer thickness (mm)",
+                label_visibility='collapsed',
+                min_value=1,
+                max_value=100,
+                value=st.session_state.get('weaklayer_thickness', 30),
+                step=5,
+                key='weaklayer_thickness',
+            )
 
 
-def show_snowprofile_instructions():
-    """Displays instructions for entering snow profile data."""
-    s = st.expander('💡 How to enter snow profile data')
+def show_snowprofile_tooltip():
+    """Displays additional info on snow profile data."""
+    s = st.expander('💡 What is shown here?')
     with s:
         s.markdown(
             """
-            This interface allows you to enter all layers above the tested weak
-            layer. Click `Add layer` to add layers bottom (above the weak layer) to top (snow surface).
-            For every layer, you can adjust its thickness, primary grain form, and hand
-            hardness. You can move or delete individual layers up or down and delete them.
-            The profile you have entered is illustrated below.
+            The snow profile plot displays the densities and thicknesses of
+            the weak layer and the overlying slab layers. Layer densities are
+            derived based on their primary grain form and hand hardness. The
+            table on the right provides detailed information on each layer,
+            including height (H), density (D), grain form (F), and hand
+            hardness (R). You can adjust the layer thickness, grain type,
+            and hand hardness at any time. Additionally, you can rearrange
+            layers by moving them up or down, or delete them as needed.
             """
         )
 
@@ -497,6 +518,7 @@ def display_snow_profile():
         fig = plot.snow_profile(
             st.session_state['weaklayer_thickness'],
             st.session_state['layers'][::-1],
+            json.loads(st.session_state.theme),
         )
 
         # Display the plot
@@ -510,17 +532,21 @@ def display_snow_profile():
             },
         )
 
+        # Show snow profile instructions
+        show_snowprofile_tooltip()
 
-def show_pst_instructions():
+
+def show_pst_tooltip():
     """Displays instructions for entering PST data."""
-    s = st.expander('💡 How to enter your PST data')
+    s = st.expander('💡 Why are these inputs needed?')
     with s:
         s.markdown(
-            """
-            Enter PST cut length and column length, indicate whether the cut was made
-            upslope or downslope, and whether the slab faces are vertical or slope-normal.
-            Finally set the slope angle. The result is calculated in real-time and will
-            update immediately.
+            r"""
+            **ORACLE** calculates the weak-layer condition based on the energy release
+            rate at the critical cut length. To perform this calculation, the model
+            requires the PST geometry (column length, slab face geometry) and loading
+            parameters (cut length, cutting direction, slope angle). In the future,
+            we will add distinctions between crack arrest and full propagation.
             """
         )
 
@@ -569,9 +595,9 @@ def handle_pst_inputs():
     cols = st.columns([3, 2], gap='large')
 
     st.slider(
-        "Inclination, slope angle ( ° )",
+        "Slope angle ( ° )",
         min_value=0,
-        max_value=90,
+        max_value=60,
         value=25,
         step=1,
         key='inclination',
@@ -618,7 +644,10 @@ def display_result():
     if st.session_state['layers']:
 
         # Generate the plot
-        fig = plot.weaklayer_instability(st.session_state['weakness'])
+        fig = plot.weaklayer_instability(
+            st.session_state['weakness'],
+            json.loads(st.session_state.theme),
+        )
 
         # Display the plot
         st.plotly_chart(
@@ -631,31 +660,38 @@ def display_result():
             },
         )
 
+        # Show result explanation
+        show_result_tooltip()
+
     else:
         st.warning('Add snow-profile information to display a result.')
 
-def show_result_explanation():
+
+def show_result_tooltip():
     """Displays the explanation of the result."""
     s = st.expander('💡 How is this calculated?')
     with s:
         s.markdown(
             """
-            ORACLE calculates the fracture toughness (fracture energy) of the weak layer
-            ested in entered propagation saw test (PST). The fracture toughness is the
-            critical energy release rate that is observed when the crack introduced be the
-            saw becomes unstable and propagates. The model accounts for every slab layer
-            and considers boundary effects. We have analyzed over 2300 PSTs to determine
-            the probability distribution of expected weak-layer fracture toughness values.
-            By comparing the fracture toughness of the entered weak layer to this
-            distribution, we can estimate how weak this weak layer is compared to all other
+            ORACLE calculates the fracture toughness (fracture energy) of the
+            weak layer based on the provided propagation saw test (PST) result.
+            Fracture toughness refers to the critical energy release rate at which
+            a crack, introduced by the saw, becomes unstable and propagates through
+            the weak layer. The model takes into account every slab layer and
+            considers boundary effects. We have analyzed over 2,300 PSTs to establish
+            the probability distribution of expected weak-layer fracture toughness
+            values. By comparing the fracture toughness of the entered weak layer to
+            this distribution, we can estimate how weak the layer is relative to other
             weak layers in our database.
             """
         )
+
 
 if __name__ == "__main__":
     main()
 
 # TODO:
+# - Link in Github repo
 # - Allow user input in inches
 # - Weak-layer graintype input (with E from Jakob's data)
 # - Provide option to enter layers top-to-bottom or bottom-to-top

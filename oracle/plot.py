@@ -240,7 +240,7 @@ def distribution(
         plt.xscale('log')
 
 
-def snow_profile(weaklayer_thickness, layers):
+def snow_profile(weaklayer_thickness, layers, theme):
     """
     Generates a snow stratification profile plot using Plotly.
 
@@ -253,18 +253,32 @@ def snow_profile(weaklayer_thickness, layers):
     """
 
     # Define colors
-    COLORS = {
-        'slab_fill': "#D3EBEE",
-        'slab_line': "#173045",
-        # 'slab_fill': "#D1E2F2",
-        # 'slab_line': "#3C658B",
-        'weak_layer_fill': "#FFCDD2",
-        'weak_layer_line': "#E57373",
-        'weak_layer_text': "#C62828",
-        'substratum_fill': "#ECEFF1",
-        'substratum_line': "#607D8B",
-        'substratum_text': "#607D8B",
-    }
+    if theme['base'] == 'dark':
+        COLORS = {
+            'slab_fill': "#173045",
+            'slab_line': "#D3EBEE",
+            'weak_layer_fill': "#E57373",
+            'weak_layer_line': "#FFCDD2",
+            'weak_layer_text': "#FFCDD2",
+            'substratum_fill': "#607D8B",
+            'substratum_line': "#ECEFF1",
+            'substratum_text': "#ECEFF1",
+            'background': theme['backgroundColor'],
+            'lines': theme['textColor'],
+        }
+    else:
+        COLORS = {
+            'slab_fill': "#D3EBEE",
+            'slab_line': "#173045",
+            'weak_layer_fill': "#FFCDD2",
+            'weak_layer_line': "#E57373",
+            'weak_layer_text': "#C62828",
+            'substratum_fill': "#ECEFF1",
+            'substratum_line': "#607D8B",
+            'substratum_text': "#607D8B",
+            'background': theme['backgroundColor'],
+            'lines': theme['textColor'],
+        }
 
     # Compute total height and set y-axis maximum
     total_height = weaklayer_thickness + sum(
@@ -419,7 +433,7 @@ def snow_profile(weaklayer_thickness, layers):
             y0=layer_bottom,
             x1=10,
             y1=layer_bottom,
-            line=dict(width=0.5),
+            line=dict(width=0.5, color=COLORS['lines']),
         )
         fig.add_annotation(
             x=12,
@@ -429,7 +443,7 @@ def snow_profile(weaklayer_thickness, layers):
             font=dict(size=10),
             xanchor='left',
             yanchor='middle',
-            bgcolor='white',
+            bgcolor=COLORS['background'],
         )
 
         # Define table row boundaries
@@ -497,7 +511,7 @@ def snow_profile(weaklayer_thickness, layers):
         y0=total_height,
         x1=10,
         y1=total_height,
-        line=dict(width=0.5),
+        line=dict(width=0.5, color=COLORS['lines']),
     )
     fig.add_annotation(
         x=12,
@@ -558,24 +572,18 @@ def snow_profile(weaklayer_thickness, layers):
 
     fig.update_yaxes(
         zeroline=False,
-        tickvals=[],  # y_grid,
-        # ticktext=[str(int(y // 10)) for y in y_grid],
-        # title_text="Height (cm)",
+        tickvals=[],
         showgrid=False,
-        # linewidth=.5,
-        # showline=True,
-        # mirror=True,
-        # linecolor='lightgray',
     )
 
     # Vertical line at x=0 (y-axis)
     fig.add_shape(
         type="line",
         x0=0,
-        y0=0,  # -substratum_thickness,
+        y0=0,
         x1=0,
         y1=y_max,
-        line=dict(width=1),
+        line=dict(width=1, color=COLORS['lines']),
     )
 
     # Vertical lines for table columns
@@ -658,12 +666,16 @@ def snow_profile(weaklayer_thickness, layers):
     return fig
 
 
-def weaklayer_instability(bar_position):
+def weaklayer_instability(bar_position, theme):
     # Define box labels and colors
     labels = ['good', 'fair', 'poor', 'very poor']
-    # box_colors = ['green', 'yellow', 'orange', 'red']
     box_colors = ['#C1E67E', '#FFDA62', '#F7AB50', '#C70039']
-    gray_color = 'lightgray'
+    bg_color = theme['backgroundColor']
+    bar_color = theme['textColor']
+    if theme['base'] == 'dark':
+        gray_color = 'darkgray'
+    else:
+        gray_color = 'lightgray'
 
     # Define box positions with a small gap between them
     gap = 0.01
@@ -708,8 +720,8 @@ def weaklayer_instability(bar_position):
             'x0': bar_position,
             'x1': bar_position,
             'y0': 0.3,
-            'y1': 1,  # Extend above and below the boxes
-            'line': {'color': 'white', 'width': 7},
+            'y1': 1,
+            'line': {'color': bg_color, 'width': 7},
         }
     )
     shapes.append(
@@ -720,8 +732,8 @@ def weaklayer_instability(bar_position):
             'x0': bar_position,
             'x1': bar_position,
             'y0': 0.3,
-            'y1': 1,  # Extend above and below the boxes
-            'line': {'color': 'black', 'width': 2},
+            'y1': 1,
+            'line': {'color': bar_color, 'width': 2},
         }
     )
 
