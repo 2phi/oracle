@@ -4,16 +4,24 @@
   <br>
   <img src="https://github.com/2phi/oracle/raw/main/img/steampunk-v1.png" alt="ORACLE" width="200">
   <br>
-  <br>
   <b>ORACLE</b>
   <br>
   <sub><sup>Observation, Research, and Analysis of Collapse and Loading Experiments</sup></sub>
   <br>
+  <br>
 </h1>
 
-<p align="center">
-  Implementation of closed-form analytical models for the analysis of anticracks in the avalanche release process.
+**ORACLE** evaluates the conditions of weak snow layers based on propagation saw tests (PSTs). Enter your snow profile and PST result to view the results in real time. Adjust parameters as needed and observe how they impact the results instantly. Explore the app in [Streamlit](https://snoworacle.streamlit.app) 🚀.
+
+<p>
+  <a href="https://snoworacle.streamlit.app">
+    <img src="https://github.com/2phi/oracle/raw/main/img/demo.gif" alt="Demo" width="500">
+  </a>
 </p>
+
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_red.svg)](https://snoworacle.streamlit.app)
+
+<br>
 
 <!-- TABLE OF CONTENTS -->
 ## Contents
