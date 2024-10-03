@@ -15,7 +15,7 @@
 
 <p>
   <a href="https://snoworacle.streamlit.app">
-    <img src="https://github.com/2phi/oracle/raw/main/img/demo.gif" alt="Demo" width="500">
+    <img src="https://github.com/2phi/oracle/raw/main/img/demo.gif" alt="Demo">
   </a>
 </p>
 
