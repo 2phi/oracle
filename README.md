@@ -11,7 +11,7 @@
   <br>
 </h1>
 
-**ORACLE** evaluates the conditions of weak snow layers based on propagation saw tests (PSTs). Enter your snow profile and PST result to view the results in real time. Adjust parameters as needed and observe how they impact the results instantly. Explore the app in [Streamlit](https://snoworacle.streamlit.app) 🚀.
+**ORACLE** evaluates the conditions of weak snow layers based on propagation saw tests (PSTs). Enter your snow profile and PST result to view the results in real time. Adjust parameters as needed and observe how they impact the results instantly. [Explore the app in Streamlit](https://snoworacle.streamlit.app) 🚀
 
 <p>
   <a href="https://snoworacle.streamlit.app">
