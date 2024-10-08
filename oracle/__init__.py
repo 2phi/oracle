@@ -9,7 +9,7 @@ anticracks in the avalanche release process.
 from .snowpilot import SnowPilotQueryEngine, SnowPilotParser
 from .slf import SLFDataParser
 from .pst import PropagationSawTestEngine
-from . import plot
+from . import config, plot
 
 # Version
 __version__ = '0.1.0'
@@ -20,5 +20,6 @@ __all__ = [
     'SnowPilotParser',
     'SLFDataParser',
     'PropagationSawTestEngine',
+    'config',
     'plot',
 ]

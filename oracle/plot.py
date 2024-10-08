@@ -2,6 +2,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 import scipy.stats as stats
 
 
@@ -62,497 +63,21 @@ def density_vs_hand_hardness(grainform_df):
     return fig, ax
 
 
-def snow_stratification(weaklayer_thickness, layers, grain_list):
-    """
-    Plots snow stratification with weak layer highlighted and grain types annotated.
-
-    Parameters:
-    weaklayer_thickness (int): Thickness of the weak layer in mm.
-    layers (list of list): 3D list where each sublist contains [density, thickness, hand hardness] for each snow layer.
-    grain_list (list of str): List of grain types corresponding to each layer.
-
-    Returns:
-    fig (matplotlib.figure.Figure): The Figure object containing the plot.
-    ax (matplotlib.axes.Axes): The Axes object containing the plot.
-    """
-
-    # Initialize figure and axis and color used for density-plots
-    fig, ax = plt.subplots(figsize=(10, 5))
-    x_max = 550  # Defining max of x-axis (density)
-    medium_blue = plt.cm.Blues(0.5)
-    dark_blue = plt.cm.Blues(0.99)
-    previous_density = 0  # Help variable to plot outline of density-plot
-
-    # Initialize hardness map to translate input values to traditional index
-    hardness_mapping = {1: "F", 2: "4F", 3: "1F", 4: "P", 5: "K"}
-
-    # Defining help variables used for table-plot on RHS of graph
-    current_table = weaklayer_thickness
-    first_column_start = (-0.7) * 100
-    second_column_start = (-1.9) * 100
-    third_column_start = (-2.4) * 100
-    third_column_end = (-2.8) * 100
-
-    # Midpoints of vertical column borders defined above
-    first_column_midpoint = (first_column_start + second_column_start) / 2
-    second_column_midpoint = (third_column_start + second_column_start) / 2
-    third_column_midpoint = (third_column_end + third_column_start) / 2
-
-    # Calculate total height of all layers
-    total_height = weaklayer_thickness + sum(
-        thickness for _, thickness, _ in layers
-    )
-
-    # Defining y_max and column header height
-    y_max = max(total_height, 500) * 1.15
-    column_header = y_max / 1.1
-
-    # Average height of layers used for plot of columns
-    avg_height = (column_header - weaklayer_thickness) / max(1, (len(layers)))
-
-    # Define substratum thickness and position
-    substratum_thickness = 40
-    substratum_bottom = -substratum_thickness
-    substratum_top = 0
-
-    # Plot the substratum and annotate text
-    ax.fill_betweenx(
-        [substratum_bottom, substratum_top], 0, x_max, color=dark_blue, alpha=1
-    )
-    ax.text(
-        250,
-        (substratum_bottom + substratum_top) / 2,
-        'substratum',
-        ha='center',
-        va='center',
-        color='white',
-        fontsize=8,
-    )
-
-    # Plot the weak layer at the bottom
-    current_height = weaklayer_thickness
-    weak_layer_top = weaklayer_thickness
-
-    if len(layers) > 0:
-        ax.fill_betweenx(
-            [0, weak_layer_top],
-            0,
-            (layers[0][0]) / 2,
-            color='coral',
-            alpha=0.3,
-            hatch='x',
-        )
-        ax.text(
-            layers[0][0],
-            weaklayer_thickness / 2,
-            'weak layer',
-            ha='right',
-            va='center',
-            color='coral',
-            fontsize=8,
-        )
-    else:
-        ax.fill_betweenx(
-            [0, weak_layer_top], 0, x_max, color='coral', alpha=0.3, hatch='x'
-        )
-        ax.text(
-            250,
-            weaklayer_thickness / 2,
-            'weak layer',
-            ha='center',
-            va='center',
-            color='coral',
-            fontsize=8,
-        )
-
-    # Loop to plot each layer from bottom to top
-    for (density, thickness, hand_hardness), grain in zip(layers, grain_list):
-
-        # Plot of layers in hand_hardness graph
-        layer_bottom = current_height
-        layer_top = current_height + thickness
-
-        # Plot of table (adding set height of 50 for each column)
-        table_bottom = current_table
-        table_top = current_table + min(avg_height, 50)
-
-        # Determine color and hatch pattern based on grain type
-        color = plt.cm.Blues(0.25)
-        hatch = '//' if grain == 'mfc' else None
-
-        # Plotting density on x-axis
-        ax.fill_betweenx(
-            [layer_bottom + 1, layer_top],
-            0,
-            density,
-            color=color,
-            alpha=0.8,
-            hatch=hatch,
-            zorder=1,
-        )
-
-        # Plotting outline of density plot
-        ax.plot(
-            [density, density],
-            [layer_bottom + 1, layer_top],
-            color=dark_blue,
-            linestyle='-',
-            linewidth=1,
-        )
-        ax.plot(
-            [previous_density, density],
-            [layer_bottom, layer_bottom],
-            color=dark_blue,
-            linestyle='-',
-            linewidth=1,
-        )
-        previous_density = density
-
-        # Manually plotting y-axis ticks
-        ax.plot(
-            [0, -10],
-            [layer_bottom, layer_bottom],
-            color='black',
-            linestyle='-',
-            linewidth=0.5,
-        )
-        ax.text(
-            (-12),
-            layer_bottom,
-            round(layer_bottom / 10),
-            ha='left',
-            va='center',
-            color='black',
-            fontsize=7,
-        )
-
-        # Plotting data legend columns
-        ax.plot(
-            [first_column_start, third_column_end],
-            [table_bottom, table_bottom],
-            color='grey',
-            linestyle='dotted',
-            linewidth=0.5,
-        )
-
-        # Annotate density in the 1st column
-        ax.text(
-            first_column_midpoint,
-            (table_bottom + table_top) / 2,
-            round(density),
-            ha='center',
-            va='center',
-            color='black',
-            fontsize=8,
-        )
-
-        # Annotate grain type in the 2nd column
-        ax.text(
-            second_column_midpoint,
-            (table_bottom + table_top) / 2,
-            grain,
-            ha='center',
-            va='center',
-            color='black',
-            fontsize=8,
-        )
-
-        # Annotate hand_hardness in 3rd column
-        ax.text(
-            third_column_midpoint,
-            (table_bottom + table_top) / 2,
-            hardness_mapping.get(hand_hardness, "Unknown hardness"),
-            ha='center',
-            va='center',
-            color='black',
-            fontsize=8,
-        )
-
-        # Linking hand_hardness layers to table
-        ax.plot(
-            [0, first_column_start],
-            [layer_bottom, table_bottom],
-            color='grey',
-            linestyle='dotted',
-            linewidth=0.25,
-        )
-        ax.plot(
-            [0, first_column_start],
-            [layer_top, table_top],
-            color='grey',
-            linestyle='dotted',
-            linewidth=0.25,
-        )
-
-        # Update the current height and table
-        current_height = layer_top
-        current_table = table_top
-
-    ### Loop over layers is finished ###
-
-    # Plotting final tick at max height
-    ax.plot(
-        [0, -10],
-        [total_height, total_height],
-        color='black',
-        linestyle='-',
-        linewidth=0.5,
-    )
-    ax.text(
-        (-12),
-        total_height,
-        round(total_height / 10),
-        ha='left',
-        va='center',
-        color='black',
-        fontsize=7,
-    )
-
-    # Drawing final contour-line of density plot
-    ax.plot(
-        [previous_density, 0],
-        [total_height, total_height],
-        color=dark_blue,
-        linestyle='-',
-        linewidth=1,
-    )
-
-    # Y-axis adjustments
-    # Manually plotting grid-lines
-    ax.set_ylim(substratum_bottom, y_max)
-    y_grid = np.arange(0, column_header, 100)
-    for y in y_grid:
-        ax.plot(
-            [0, x_max],
-            [y, y],
-            color='grey',
-            linestyle='--',
-            linewidth=0.5,
-            zorder=0,
-        )
-    y_tick_positions = y_grid
-    y_tick_labels = [
-        pos // 10 for pos in y_tick_positions
-    ]  # adjusting labels to cm
-    plt.yticks(ticks=y_tick_positions, labels=y_tick_labels)
-    ax.set_ylabel('Height (cm)')
-
-    # X-axis adjustments
-    # Inverting, aligning at top and coloring in blue
-    ax.set_xlim(third_column_end, x_max)
-    ax.invert_xaxis()
-    ax.xaxis.set_ticks_position('top')
-    ax.xaxis.set_label_position('top')
-    x_ticks = [100, 200, 300, 400, 500]
-    ax.set_xticks(x_ticks)
-    ax.tick_params(axis='x', colors=medium_blue, direction='in', pad=-15)
-    title_position = 0.35  # Normalized position on positive axis
-    ax.set_xlabel('Density (kg/m³)', x=title_position, color=medium_blue)
-
-    # Data table-adjustments
-    # Plotting table columns and annotating titles
-    ax.plot(
-        [0, 0],
-        [substratum_bottom, y_max],
-        color='black',
-        linestyle='-',
-        linewidth=1,
-    )
-    ax.plot(
-        [first_column_start, first_column_start],
-        [weaklayer_thickness, y_max],
-        color='grey',
-        linestyle='dotted',
-        linewidth=0.5,
-    )
-    ax.plot(
-        [second_column_start, second_column_start],
-        [weaklayer_thickness, y_max],
-        color='grey',
-        linestyle='dotted',
-        linewidth=0.5,
-    )
-    ax.plot(
-        [third_column_start, third_column_start],
-        [weaklayer_thickness, y_max],
-        color='grey',
-        linestyle='dotted',
-        linewidth=0.5,
-    )
-    ax.plot(
-        [0, third_column_end],
-        [column_header, column_header],
-        color='grey',
-        linestyle='dotted',
-        linewidth=0.5,
-    )
-    ax.text(
-        first_column_start / 2,
-        (y_max + column_header) / 2,
-        "H (cm)",
-        ha='center',
-        va='center',
-        color='black',
-        fontsize=9,
-    )
-    ax.text(
-        first_column_midpoint,
-        (y_max + column_header) / 2,
-        "Density (kg/m³)",
-        ha='center',
-        va='center',
-        color='black',
-        fontsize=9,
-    )
-    ax.text(
-        second_column_midpoint,
-        (y_max + column_header) / 2,
-        "GF",
-        ha='center',
-        va='center',
-        color='black',
-        fontsize=9,
-    )
-    ax.text(
-        third_column_midpoint,
-        (y_max + column_header) / 2,
-        "R",
-        ha='center',
-        va='center',
-        color='black',
-        fontsize=9,
-    )
-
-    # Title of plot
-    ax.set_title('Snow Stratification', fontsize=14)
-
-    # Return the figure and axis objects
-    return fig, ax
-
-
-def lognorm_pdf(
-    data: pd.Series,
-    bins: int = 75,
-    range: tuple[float, float] = (0, 25),
-    density: bool = True,
-    histogram: bool = True,
-    function: bool = True,
-    zorder: int = 2,
-):
-    """
-    Fit and plot the probability distribution function using a lognormal distribution.
-
-    Parameters
-    ----------
-    data : pd.Series
-        Dataset.
-    bins : int, optional
-        Number of bins. Default is 75.
-    range : tuple[float, float], optional
-        Range to plot. Default is (0, 25).
-    density : bool, optional
-        Wether to plot the density. Default is True.
-    histogram : bool, optional
-        Wether to plot the histogram. Default is True.
-    function : bool, optional
-        Wether to plot the probability distribution function. Default is True.
-    zorder : int, optional
-        Z-order for plotting. Default is 2.
-    """
-
-    # Get histogram data and bins
-    hist_data, hist_bins = np.histogram(
-        data, bins=bins, range=range, density=density
-    )
-    hist_x = (hist_bins[:-1] + hist_bins[1:]) / 2
-
-    # Calculate the bin width and reduce it slightly to create a gap between bars
-    bin_width = hist_bins[1] - hist_bins[0]
-    bar_width = 0.75 * bin_width
-
-    # Calc the probability density function
-    x = np.linspace(min(data), min(max(data), range[1]), 1000)
-    shape, loc, scale = stats.lognorm.fit(data)
-    pdf_data = stats.lognorm.pdf(x, shape, loc, scale)
-
-    # Plot
-    if histogram:
-        plt.bar(hist_x, hist_data, width=bar_width, color='w', zorder=zorder)
-        plt.bar(hist_x, hist_data, width=bar_width, alpha=0.5, zorder=zorder)
-    if function and density:
-        plt.plot(x, pdf_data, color='w', lw=3, zorder=zorder)
-        plt.plot(x, pdf_data, zorder=zorder)
-
-    return plt.gca()
-
-
-def lognorm_cdf(
-    data: pd.Series,
-    bins: int = 75,
-    range: tuple[float, float] = (0, 25),
-    density: bool = True,
-    histogram: bool = True,
-    function: bool = True,
-    zorder: int = 1,
-):
-    """
-    Fit and plot the cumulative distribution function using a lognormal distribution.
-
-    Parameters
-    ----------
-    data : pd.Series
-        Dataset.
-    bins : int, optional
-        Number of bins. Default is 75.
-    range : tuple[float, float], optional
-        Range to plot. Default is (0, 25).
-    density : bool, optional
-        Wether to plot the histogram. Default is True.
-    histogram : bool, optional
-        Wether to plot the histogram. Default is True.
-    function : bool, optional
-        Wether to plot the cumulative distribution function. Default is True.
-    zorder : int, optional
-        Z-order for plotting. Default is 1.
-    """
-
-    # Get histogram data and bins
-    hist_data, hist_bins = np.histogram(
-        data, bins=bins, range=range, density=density
-    )
-    hist_data = np.cumsum(hist_data) * np.diff(hist_bins)
-    hist_x = (hist_bins[:-1] + hist_bins[1:]) / 2
-
-    # Calculate the bin width and reduce it slightly to create a gap between bars
-    bin_width = hist_bins[1] - hist_bins[0]
-    bar_width = 0.75 * bin_width
-
-    # Calc the cumulative distribution function
-    x = np.linspace(min(data), min(max(data), range[1]), 1000)
-    shape, loc, scale = stats.lognorm.fit(data)
-    cdf_data = stats.lognorm.cdf(x, shape, loc, scale)
-
-    # Plot
-    if histogram:
-        plt.bar(hist_x, hist_data, width=bar_width, color='w', zorder=zorder)
-        plt.bar(hist_x, hist_data, width=bar_width, alpha=0.5, zorder=zorder)
-    if function and density:
-        plt.plot(x, cdf_data, color='w', lw=3, zorder=zorder)
-        plt.plot(x, cdf_data, zorder=zorder)
-
-
-def lognorm_distribution(
+def distribution(
     data: pd.Series,
     kind: str = 'pdf',
     bins: int = 75,
     range: tuple[float, float] = (0, 25),
+    fit_to_range: bool = False,
     density: bool = True,
     histogram: bool = True,
     function: bool = True,
     zorder: int | None = None,
+    log: bool = False,
+    dist_type: str = 'lognorm',
 ):
     """
-    Fit and plot the lognormal distribution (PDF or CDF) for the given data.
+    Fit and plot the specified distribution (PDF or CDF) for the given data.
 
     Parameters
     ----------
@@ -564,6 +89,8 @@ def lognorm_distribution(
         Number of bins for the histogram. Default is 75.
     range : tuple[float, float], optional
         Range for the histogram and plot. Default is (0, 25).
+    fit_to_range : bool, optional
+        If True, filters data to be within the specified range. Default is False.
     density : bool, optional
         If True, the histogram is normalized to form a probability density.
         Default is True.
@@ -575,17 +102,26 @@ def lognorm_distribution(
     zorder : int or None, optional
         The drawing order of plot elements. If None, defaults to 2 for 'pdf' and
         1 for 'cdf'. If provided, uses the given value.
+    log : bool, optional
+        If True, plots with logarithmically spaced x-axes. Default is False.
+    dist_type : str, optional
+        Type of distribution to fit and plot: 'lognorm', 'cauchy', 'chi2', or 'expon'.
+        Default is 'lognorm'.
 
     Raises
     ------
     ValueError
         If the 'kind' parameter is not 'pdf' or 'cdf'.
+    ValueError
+        If the 'dist_type' parameter is not 'lognorm', 'cauchy', 'chi2', or 'expon'.
+    TypeError
+        If zorder is not an integer or None.
 
     Examples
     --------
     >>> data = pd.Series(np.random.lognormal(mean=1, sigma=0.5, size=1000))
-    >>> lognorm_distribution(data, kind='pdf')
-    >>> lognorm_distribution(data, kind='cdf')
+    >>> lognorm_distribution(data, kind='pdf', log=True, dist_type='lognorm')
+    >>> lognorm_distribution(data, kind='cdf', log=True, dist_type='cauchy')
     """
 
     # Set default zorder based on 'kind' if zorder is None
@@ -603,51 +139,635 @@ def lognorm_distribution(
         if not isinstance(zorder, int):
             raise TypeError("zorder must be an integer or None.")
 
-    # Fit the lognormal distribution to the data
-    shape, loc, scale = stats.lognorm.fit(data, floc=0)
+    # Unpack range
+    x_min = 1e-3 if log and range[0] <= 0 else range[0]
+    x_max = range[1]
 
-    # Generate x values for plotting the function
-    x = np.linspace(max(min(data), range[0]), min(max(data), range[1]), 1000)
+    # Filter data if necessary
+    if fit_to_range:
+        data = data[(data >= x_min) & (data <= x_max)]
 
-    # Calculate the PDF or CDF based on the 'kind' parameter
-    if kind == 'pdf':
-        y_data = stats.lognorm.pdf(x, shape, loc=loc, scale=scale)
-    elif kind == 'cdf':
-        y_data = stats.lognorm.cdf(x, shape, loc=loc, scale=scale)
+    # Fit the specified distribution to the data
+    if dist_type == 'lognorm':
+        dist = stats.lognorm
+        params = dist.fit(data)
+        shape, loc, scale = params
+        args = (shape,)
+        kwargs = {'loc': loc, 'scale': scale}
+    elif dist_type == 'cauchy':
+        dist = stats.cauchy
+        params = dist.fit(data)
+        loc, scale = params
+        args = ()
+        kwargs = {'loc': loc, 'scale': scale}
+    elif dist_type == 'expon':
+        dist = stats.expon
+        params = dist.fit(data)
+        loc, scale = params
+        args = ()
+        kwargs = {'loc': loc, 'scale': scale}
+    elif dist_type == 'chi2':
+        dist = stats.chi2
+        params = dist.fit(data)
+        df, loc, scale = params
+        args = (df,)
+        kwargs = {'loc': loc, 'scale': scale}
     else:
-        raise ValueError("Invalid 'kind' parameter. Must be 'pdf' or 'cdf'.")
+        raise ValueError(
+            "Invalid 'dist_type' parameter. Must be 'lognorm', 'cauchy', 'chi2', or 'expon'."
+        )
 
-    # Get histogram data and bins
-    hist_data, hist_bins = np.histogram(
-        data, bins=bins, range=range, density=density
-    )
-    hist_x = (hist_bins[:-1] + hist_bins[1:]) / 2
+    # Generate bin edges
+    if log:
+        bins_edges = np.logspace(np.log10(x_min), np.log10(x_max), bins + 1)
+    else:
+        bins_edges = np.linspace(x_min, x_max, bins + 1)
+
+    # Compute the histogram
+    hist_data, hist_bins = np.histogram(data, bins=bins_edges, density=density)
 
     # For CDF, compute the cumulative sum of histogram data
     if kind == 'cdf':
-        hist_data = np.cumsum(hist_data)
-        if density:
-            hist_data = (
-                hist_data / hist_data[-1]
-            )  # Normalize to 1 if density is True
+        # Multiply by bin widths to get probability masses
+        hist_data = np.cumsum(hist_data * np.diff(hist_bins))
 
-    # Calculate the bin width and reduce it slightly to create a gap between bars
-    bin_width = hist_bins[1] - hist_bins[0]
-    bar_width = 0.75 * bin_width
+    # Calculate bin widths
+    bar_widths = 0.7 * np.diff(hist_bins)
 
     # Plot the histogram
     if histogram:
-        plt.bar(hist_x, hist_data, width=bar_width, color='w', zorder=zorder)
-        plt.bar(hist_x, hist_data, width=bar_width, alpha=0.5, zorder=zorder)
+        plt.bar(
+            hist_bins[:-1],
+            hist_data,
+            width=bar_widths,
+            color='w',
+            zorder=zorder,
+            align='center',
+        )
+        plt.bar(
+            hist_bins[:-1],
+            hist_data,
+            width=bar_widths,
+            alpha=0.5,
+            zorder=zorder,
+            align='center',
+        )
+
+    # Generate x values for plotting the function
+    if log:
+        x = np.logspace(np.log10(x_min), np.log10(x_max), 1000)
+    else:
+        x = np.linspace(x_min, x_max, 1000)
+
+    # Calculate the PDF or CDF based on the 'kind' parameter
+    if kind == 'pdf':
+        y_data = dist.pdf(x, *args, **kwargs)
+    elif kind == 'cdf':
+        y_data = dist.cdf(x, *args, **kwargs)
+    else:
+        raise ValueError("Invalid 'kind' parameter. Must be 'pdf' or 'cdf'.")
 
     # Plot the fitted distribution function
     if function and density:
+        if not histogram:
+            plt.fill_between(x, y_data, zorder=zorder, alpha=0.8, color='w')
+            plt.fill_between(x, y_data, zorder=zorder, alpha=0.2)
         plt.plot(x, y_data, color='w', lw=3, zorder=zorder)
         plt.plot(x, y_data, zorder=zorder)
 
-    # Label the axes
-    plt.xlabel('Value')
-    if kind == 'pdf':
-        plt.ylabel('Probability Density')
-    elif kind == 'cdf':
-        plt.ylabel('Cumulative Probability')
+    # Set the x-axis to logarithmic scale if log=True
+    if log:
+        plt.xscale('log')
+
+
+def snow_profile(weaklayer_thickness, layers, theme):
+    """
+    Generates a snow stratification profile plot using Plotly.
+
+    Parameters:
+    - weaklayer_thickness (float): Thickness of the weak layer in the snowpack.
+    - layers (list of dicts): Each dict has keys density, thickness, hardness, and grain of a layer.
+
+    Returns:
+    - fig (go.Figure): A Plotly figure object representing the snow profile.
+    """
+
+    # Define colors
+    if theme['base'] == 'dark':
+        COLORS = {
+            'slab_fill': "#173045",
+            'slab_line': "#D3EBEE",
+            'weak_layer_fill': "#E57373",
+            'weak_layer_line': "#FFCDD2",
+            'weak_layer_text': "#FFCDD2",
+            'substratum_fill': "#607D8B",
+            'substratum_line': "#ECEFF1",
+            'substratum_text': "#ECEFF1",
+            'background': theme['backgroundColor'],
+            'lines': theme['textColor'],
+        }
+    else:
+        COLORS = {
+            'slab_fill': "#D3EBEE",
+            'slab_line': "#173045",
+            'weak_layer_fill': "#FFCDD2",
+            'weak_layer_line': "#E57373",
+            'weak_layer_text': "#C62828",
+            'substratum_fill': "#ECEFF1",
+            'substratum_line': "#607D8B",
+            'substratum_text': "#607D8B",
+            'background': theme['backgroundColor'],
+            'lines': theme['textColor'],
+        }
+
+    # Compute total height and set y-axis maximum
+    total_height = weaklayer_thickness + sum(
+        layer['thickness'] for layer in layers
+    )
+    y_max = max(total_height * 1.1, 450)  # Ensure y_max is at least 500
+
+    # Define substratum properties
+    substratum_thickness = 50
+
+    # Compute x-axis maximum based on layer densities
+    max_density = max((layer['density'] for layer in layers), default=400)
+    x_max = max(1.05 * max_density, 400)  # Ensure x_max is at least 400
+
+    # Initialize the Plotly figure
+    fig = go.Figure()
+
+    # Plot the substratum (base layer)
+    fig.add_shape(
+        type="rect",
+        x0=-x_max,
+        x1=x_max,
+        y0=-substratum_thickness,
+        y1=0,
+        fillcolor=COLORS['substratum_fill'],
+        line=dict(width=2, color=COLORS['substratum_fill']),
+        # layer='below',
+    )
+
+    fig.add_shape(
+        type="line",
+        x0=-x_max,
+        y0=0,
+        x1=x_max,
+        y1=0,
+        line=dict(color=COLORS['substratum_line'], width=1.2),
+    )
+
+    # Determine weak layer density
+    weak_density = 100
+
+    # Add substratum label
+    fig.add_annotation(
+        x=-weak_density / 2,  # -x_max / 2,
+        y=-substratum_thickness / 2,
+        text="substratum ",
+        showarrow=False,
+        font=dict(color=COLORS['substratum_text'], size=10),
+        xanchor='center',
+        yanchor='middle',
+    )
+
+    # Plot the weak layer
+    fig.add_shape(
+        type="rect",
+        x0=-weak_density,
+        x1=0,
+        y0=0,
+        y1=weaklayer_thickness,
+        fillcolor=COLORS['weak_layer_fill'],
+        line=dict(width=1, color=COLORS['weak_layer_line']),
+        layer='below',
+    )
+
+    # Add weak layer label
+    fig.add_annotation(
+        x=-weak_density / 2,
+        y=weaklayer_thickness / 2,
+        text="weak layer",
+        showarrow=False,
+        font=dict(color=COLORS['weak_layer_text'], size=10),
+        xanchor='center',
+        yanchor='middle',
+    )
+
+    # Initialize variables for plotting layers
+    current_height = weaklayer_thickness
+    previous_density = 0  # Start from zero density
+
+    # Define positions for annotations (table columns)
+    col_width = 0.08
+    x_pos = {
+        'col1_start': 1 * col_width * x_max,
+        'col2_start': 2 * col_width * x_max,
+        'col3_start': 3 * col_width * x_max,
+        'col3_end': 4 * col_width * x_max,
+    }
+
+    # Compute midpoints for annotation placement
+    first_column_mid = (x_pos['col1_start'] + x_pos['col2_start']) / 2
+    second_column_mid = (x_pos['col2_start'] + x_pos['col3_start']) / 2
+    third_column_mid = (x_pos['col3_start'] + x_pos['col3_end']) / 2
+
+    # Set the position for the table header
+    column_header_y = y_max / 1.1
+    max_table_row_height = 85  # Maximum height for table rows
+
+    # Calculate average height per table row
+    num_layers = max(len(layers), 1)
+    avg_row_height = (column_header_y - weaklayer_thickness) / num_layers
+    avg_row_height = min(avg_row_height, max_table_row_height)
+
+    # Initialize current table height
+    current_table_y = weaklayer_thickness
+
+    # Loop through each layer and plot
+    for layer in layers:
+        
+        density = layer['density']
+        thickness = layer['thickness']
+        hand_hardness = layer['hardness']
+        grain = layer['grain']
+        
+        # Define layer boundaries
+        layer_bottom = current_height
+        layer_top = current_height + thickness
+
+        # Plot the layer
+        fig.add_shape(
+            type="rect",
+            x0=-density,
+            x1=0,
+            y0=layer_bottom,
+            y1=layer_top,
+            fillcolor=COLORS['slab_fill'],
+            line=dict(width=0.4, color=COLORS['slab_fill']),
+            layer='above',
+        )
+
+        # Plot lines connecting previous and current densities
+        fig.add_shape(
+            type="line",
+            x0=-previous_density,
+            y0=layer_bottom,
+            x1=-density,
+            y1=layer_bottom,
+            line=dict(color=COLORS['slab_line'], width=1.2),
+        )
+        fig.add_shape(
+            type="line",
+            x0=-density,
+            y0=layer_bottom,
+            x1=-density,
+            y1=layer_top,
+            line=dict(color=COLORS['slab_line'], width=1.2),
+        )
+
+        # Add height markers on the left
+        fig.add_shape(
+            type="line",
+            x0=0,
+            y0=layer_bottom,
+            x1=10,
+            y1=layer_bottom,
+            line=dict(width=0.5, color=COLORS['lines']),
+        )
+        fig.add_annotation(
+            x=12,
+            y=layer_bottom,
+            text=str(round(layer_bottom / 10)),
+            showarrow=False,
+            font=dict(size=10),
+            xanchor='left',
+            yanchor='middle',
+            bgcolor=COLORS['background'],
+        )
+
+        # Define table row boundaries
+        table_bottom = current_table_y
+        table_top = current_table_y + avg_row_height
+
+        # Add table grid lines
+        fig.add_shape(
+            type="line",
+            x0=x_pos['col1_start'],
+            y0=table_bottom,
+            x1=x_pos['col3_end'],
+            y1=table_bottom,
+            line=dict(color="lightgrey", width=0.5),
+        )
+
+        # Add annotations for density, grain form, and hand hardness
+        fig.add_annotation(
+            x=first_column_mid,
+            y=(table_bottom + table_top) / 2,
+            text=str(round(density)),
+            showarrow=False,
+            font=dict(size=10),
+            xanchor='center',
+            yanchor='middle',
+        )
+        fig.add_annotation(
+            x=second_column_mid,
+            y=(table_bottom + table_top) / 2,
+            text=grain,
+            showarrow=False,
+            font=dict(size=10),
+            xanchor='center',
+            yanchor='middle',
+        )
+        fig.add_annotation(
+            x=third_column_mid,
+            y=(table_bottom + table_top) / 2,
+            text=hand_hardness,
+            showarrow=False,
+            font=dict(size=10),
+            xanchor='center',
+            yanchor='middle',
+        )
+
+        # Lines from layer edges to table
+        fig.add_shape(
+            type="line",
+            x0=0,
+            y0=layer_bottom,
+            x1=x_pos['col1_start'],
+            y1=table_bottom,
+            line=dict(color="lightgrey", width=0.5),
+        )
+
+        # Update variables for next iteration
+        previous_density = density
+        current_height = layer_top
+        current_table_y = table_top
+
+    # Add top layer height marker
+    fig.add_shape(
+        type="line",
+        x0=0,
+        y0=total_height,
+        x1=10,
+        y1=total_height,
+        line=dict(width=0.5, color=COLORS['lines']),
+    )
+    fig.add_annotation(
+        x=12,
+        y=total_height,
+        text=str(round(total_height / 10)),
+        showarrow=False,
+        font=dict(size=10),
+        xanchor='left',
+        yanchor='middle',
+    )
+
+    # Final line connecting last density to x=0 at total_height
+    fig.add_shape(
+        type="line",
+        x0=-previous_density,
+        y0=total_height,
+        x1=0,
+        y1=total_height,
+        line=dict(color=COLORS['slab_line'], width=1),
+    )
+
+    # Set axes properties
+    fig.update_layout(
+        yaxis=dict(range=[-1.05 * substratum_thickness, y_max]),
+        xaxis=dict(
+            range=[-1.05 * x_max, x_pos['col3_end']],
+            autorange=False,
+        ),
+        height=max(500, 0.4 * y_max),
+    )
+
+    # Add horizontal grid lines
+    y_tick_spacing = 100 if total_height < 800 else 200
+    y_grid = np.arange(0, total_height, y_tick_spacing)
+    for y in y_grid:
+        fig.add_shape(
+            type="line",
+            x0=0,
+            y0=y,
+            x1=-x_max,  # Extend grid line to the left
+            y1=y,
+            line=dict(color='lightgrey', width=0.5),
+            layer='below',
+        )
+
+    # Adjust axes labels and ticks
+    fig.update_xaxes(
+        tickvals=[],  # np.arange(-1000, 0, 100),
+        # ticks='inside',
+        # ticklabelposition='inside',
+        # title_text="Density (kg/m³)",
+        # side='top',
+        # showticklabels=True,
+        # linewidth=.5,
+        # mirror=True,
+        # linecolor='lightgray',
+    )
+
+    fig.update_yaxes(
+        zeroline=False,
+        tickvals=[],
+        showgrid=False,
+    )
+
+    # Vertical line at x=0 (y-axis)
+    fig.add_shape(
+        type="line",
+        x0=0,
+        y0=0,
+        x1=0,
+        y1=y_max,
+        line=dict(width=1, color=COLORS['lines']),
+    )
+
+    # Vertical lines for table columns
+    for x in [
+        x_pos['col1_start'],
+        x_pos['col2_start'],
+        x_pos['col3_start'],
+    ]:
+        fig.add_shape(
+            type="line",
+            x0=x,
+            y0=weaklayer_thickness,
+            x1=x,
+            y1=y_max,
+            line=dict(color="lightgrey", width=0.5),
+        )
+
+    # Horizontal line at table header
+    fig.add_shape(
+        type="line",
+        x0=0,
+        y0=column_header_y,
+        x1=x_pos['col3_end'],
+        y1=column_header_y,
+        line=dict(color='lightgrey', width=0.5),
+    )
+
+    # Annotations for table headers
+    header_y_position = (y_max + column_header_y) / 2
+    fig.add_annotation(
+        x=(0 + x_pos['col1_start']) / 2,
+        y=header_y_position,
+        text="H",  # "H<br>cm",  # "H (cm)",
+        showarrow=False,
+        font=dict(size=10),
+        xanchor='center',
+        yanchor='middle',
+    )
+    fig.add_annotation(
+        x=first_column_mid,
+        y=header_y_position,
+        text="D",  # 'D<br>kg/m³',  # "Density (kg/m³)",
+        showarrow=False,
+        font=dict(size=10),
+        xanchor='center',
+        yanchor='middle',
+    )
+    fig.add_annotation(
+        x=second_column_mid,
+        y=header_y_position,
+        text='F',  # "GF",
+        showarrow=False,
+        font=dict(size=10),
+        xanchor='center',
+        yanchor='middle',
+    )
+    fig.add_annotation(
+        x=third_column_mid,
+        y=header_y_position,
+        text="R",
+        showarrow=False,
+        font=dict(size=10),
+        xanchor='center',
+        yanchor='middle',
+    )
+
+    fig.add_annotation(
+        x=-x_max,
+        y=-substratum_thickness - 2,
+        text="H – Height (cm)           D – Density (kg/m³)           F – Grain Form           R – Hand Hardness",
+        showarrow=False,
+        xanchor='left',
+        yanchor='top',
+        align='left',
+    )
+
+    # Adjust the plot margins (optional)
+    fig.update_layout(margin=dict(l=0, r=0, t=40, b=40))
+
+    return fig
+
+
+def weaklayer_instability(bar_position, theme):
+    # Define box labels and colors
+    labels = ['good', 'fair', 'poor', 'very poor']
+    box_colors = ['#C1E67E', '#FFDA62', '#F7AB50', '#C70039']
+    bg_color = theme['backgroundColor']
+    bar_color = theme['textColor']
+    if theme['base'] == 'dark':
+        gray_color = 'darkgray'
+    else:
+        gray_color = 'lightgray'
+
+    # Define box positions with a small gap between them
+    gap = 0.01
+    box_width = (1 - 3 * gap) / 4
+    positions = [i * (box_width + gap) for i in range(len(labels))]
+
+    # Create box shapes with correct coloring
+    shapes = []
+    for i, pos in enumerate(positions):
+        if (
+            (i == 0 and bar_position <= 0.25)
+            or (i == 1 and 0.25 < bar_position <= 0.5)
+            or (i == 2 and 0.5 < bar_position <= 0.75)
+            or (i == 3 and 0.75 < bar_position <= 1)
+        ):
+            fill_color = box_colors[i]
+        else:
+            fill_color = gray_color
+
+        shapes.append(
+            {
+                'type': 'rect',
+                'xref': 'x',
+                'yref': 'y',
+                'x0': pos,
+                'x1': pos + box_width,
+                'y0': 0.4,
+                'y1': 0.9,
+                'fillcolor': fill_color,
+                'opacity': 1,
+                'line': {'width': 0},  # No outline
+                'layer': 'below',
+            }
+        )
+
+    # Create the vertical bar extending above and below the boxes
+    shapes.append(
+        {
+            'type': 'line',
+            'xref': 'x',
+            'yref': 'y',
+            'x0': bar_position,
+            'x1': bar_position,
+            'y0': 0.3,
+            'y1': 1,
+            'line': {'color': bg_color, 'width': 7},
+        }
+    )
+    shapes.append(
+        {
+            'type': 'line',
+            'xref': 'x',
+            'yref': 'y',
+            'x0': bar_position,
+            'x1': bar_position,
+            'y0': 0.3,
+            'y1': 1,
+            'line': {'color': bar_color, 'width': 2},
+        }
+    )
+
+    # Create the figure
+    fig = go.Figure()
+
+    # Add shapes to the figure
+    fig.update_layout(
+        shapes=shapes,
+        xaxis={
+            'range': [0, 1],
+            'showgrid': False,
+            'zeroline': False,
+            'visible': False,
+        },
+        yaxis={
+            'range': [0, 1],
+            'showgrid': False,
+            'zeroline': False,
+            'visible': False,
+        },
+        height=50,
+        width=800,
+        margin=dict(t=0, b=0, l=0, r=0),
+    )
+
+    # Add labels as annotations below the boxes
+    for i, pos in enumerate(positions):
+        fig.add_annotation(
+            x=pos + box_width / 2,
+            y=0.15,
+            text=labels[i],
+            showarrow=False,
+            font=dict(size=12),
+        )
+
+    return fig

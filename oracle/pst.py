@@ -54,6 +54,7 @@ class PropagationSawTestEngine:
     def _calc_gdif(
         self,
         pst_row: pd.Series,
+        pst_type: str = 'normal',
         layers: list[list] | None = None,
         phi: float | None = None,
         a: float | None = None,
@@ -73,6 +74,9 @@ class PropagationSawTestEngine:
             - incline: float
             - lengthOfCut: float
             - lengthOfColumn: int
+        pst_type : str, optional
+            Vertical ('vertical') or slope-normal ('normal') faces.
+            Default is 'normal'.
         layers : ndarray, optional
             Slab layering as list of densities (kg/m^3) and thicknesses (mm).
         phi : float, optional
@@ -99,7 +103,7 @@ class PropagationSawTestEngine:
         phi = pst_row['incline']
         a = pst_row['lengthOfCut']
         L = pst_row['lengthOfColumn']
-        
+
         # Return NaN if layer info is missing
         if len(layers) == 0:
             return pd.NA
@@ -108,9 +112,16 @@ class PropagationSawTestEngine:
         t = t if t is not None else self.twl
         E = E if E is not None else self.Ewl
         nu = nu if nu is not None else self.nu
+        
+        if pst_type == 'vertical':
+            system = '-vpst'
+        elif pst_type == 'normal':
+            system = '-pst'
+        else:
+            raise ValueError(f"Invalid PST type: {pst_type}")
 
         # Initialize the system
-        model = weac.Layered(system='-pst')
+        model = weac.Layered(system=system)
         model.set_foundation_properties(t=t, E=E, nu=nu, update=True)
         model.set_beam_properties(layers=layers, C1=self.gamma, update=True)
 
@@ -120,13 +131,17 @@ class PropagationSawTestEngine:
 
         # Calculate energy release rates and bending stiffness
         G, Gi, Gii = model.gdif(C=C, phi=phi, **segments, unit='J/m^2')
-        D11 = model.D11
+        D11 = 1e-8 * model.D11
 
         # Return the results in a pd.Series format for dataframe processing
         return pd.Series({'Gc': G, 'GIc': Gi, 'GIIc': Gii, 'D11': D11})
 
     def calc_fracture_toughness(
-        self, df: pd.DataFrame, use_t: bool = False, use_E: bool = False
+        self,
+        df: pd.DataFrame,
+        use_t: bool = False,
+        use_E: bool = False,
+        pst_type: str = 'normal',
     ) -> pd.DataFrame:
         """
         Apply the fracture toughness calculation to an entire dataframe.
@@ -140,12 +155,20 @@ class PropagationSawTestEngine:
         -------
         pd.DataFrame
             Updated dataframe with 'Gc', 'GIc', 'GIIc', and 'D11' columns.
+        use_t : bool, optional
+            Use 't' column for weak-layer thickness. Default is False.
+        use_E : bool, optional
+            Use 'E' column for weak-layer Young's modulus. Default is False.
+        pst_type : str, optional
+            Vertical ('vertical') or slope-normal ('normal') faces.
+            Default is 'normal'.
         """
         df.loc[:, ['Gc', 'GIc', 'GIIc', 'D11']] = df.apply(
             lambda row: self._calc_gdif(
                 pst_row=row,
                 t=row['t'] if use_t else None,  # Pass 't' if use_t is True
                 E=row['E'] if use_E else None,  # Pass 'E' if use_E is True
+                pst_type=pst_type,
             ),
             axis=1,
         )
