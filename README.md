@@ -45,7 +45,7 @@ Cite the repository as:
 tbd.
 ```
 
-Written in 🐍 [Python](https://www.python.org) and built with 💻 [Visual Studio Code](https://code.visualstudio.com), 🐙 [GitKraken](https://www.gitkraken.com), and ⭕️ [Marimo](https://marimo.io).
+Written in 🐍 [Python](https://www.python.org) and built with 💻 [Visual Studio Code](https://code.visualstudio.com), 🐙 [GitKraken](https://www.gitkraken.com)
 
 
 
@@ -62,18 +62,18 @@ pip install -U weac
 git clone https://github.com/2phi/oracle
 ```
 
-3. Run Marimo
+3. Run Streamlit
 ```sh
-marimo run dashboard.py
+streamlit run app.py
 ```
 
 Needs
 - [Python](https://www.python.org/downloads/release/python-3100/) &ge; 3.10
-- [Marimo](https://marimo.io) for the user interface
 - [Numpy](https://numpy.org/) for matrix operations
 - [Scipy](https://www.scipy.org/) for solving optimization problems
 - [Pandas](https://pandas.pydata.org/) for data handling
 - [Matplotlib](https://matplotlib.org/) for plotting
+- [Streamlit](https://https://streamlit.io/) for user interface
 
 
 
