@@ -989,8 +989,8 @@ class SnowPilotParser:
 
             return layers
 
-        # Apply truncation to the entire dataframe
-        self._df["layers"] = self._df.apply(trucate_layers, axis=1)
-
         # Remove rows where layers is an empty list
         self._df = self._df[self._df["layers"].apply(lambda x: len(x) > 0)]
+
+        # Apply truncation to the entire dataframe
+        self._df["layers"] = self._df.apply(trucate_layers, axis=1)
